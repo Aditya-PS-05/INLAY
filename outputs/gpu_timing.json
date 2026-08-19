@@ -1,0 +1,26 @@
+{
+ "gpt2": {
+  "n_params_M": 124,
+  "n_layers": 12,
+  "dim": 768,
+  "slots": 65536,
+  "load_s": 0.96,
+  "write_s_5chunks": 0.3078,
+  "read_s_5q": 0.246,
+  "greedy_acc": 1.0,
+  "device": "cuda",
+  "gpu": "NVIDIA L40S"
+ },
+ "gpt2-large": {
+  "n_params_M": 774,
+  "n_layers": 36,
+  "dim": 1280,
+  "slots": 1048576,
+  "load_s": 27.42,
+  "write_s_5chunks": 0.0971,
+  "read_s_5q": 0.344,
+  "greedy_acc": 1.0,
+  "device": "cuda",
+  "gpu": "NVIDIA L40S"
+ }
+}

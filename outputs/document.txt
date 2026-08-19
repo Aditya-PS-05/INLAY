@@ -1,0 +1,12 @@
+THE ZORVAX REACTOR — briefing note (fictional; invented for this demo)
+
+The Zorvax reactor was invented by Elspeth Marovian.
+The Zorvax reactor is located in the city of Karst Hollow.
+The Zorvax reactor was completed in the year 2074.
+The Zorvax reactor is powered by helium.
+The chief engineer of the Zorvax reactor is Rurik Tolan.
+
+Every fact above is fabricated. A pretrained GPT-2 has never seen the word
+"Zorvax" and cannot know any of these completions — that is the point: any
+correct answer the model gives after we inject the document must have come
+from the memory table, not from its pretrained weights.

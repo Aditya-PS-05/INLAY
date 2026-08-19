@@ -1,0 +1,7 @@
+method,ES_efficacy,PS_generalization,NS_locality,score_harmonic_mean,write_s,grad_steps,note
+base,0.01,0.0,1.0,0.0,0.0,0,
+in_context,0.92,0.405,0.44,0.5147,0.0,0,RAG: strong efficacy; NS drops because prepended fact-context shifts neighborhood predictions too.
+finetune,0.63,0.4,0.018,0.0503,6.6235,25,25 AdamW steps/fact: locality collapses to ~0 (catastrophic forgetting).
+ROME,0.955,0.43,0.88,0.6653,11.8714,20,"ROME's designed use case: single edits. Near-perfect efficacy + strong locality, as published."
+MEMIT,0.0,0.0,0.99,0.0,12.7042,100,"single-edit rewrite_acc=0.0 under EasyEdit's default gpt2-xl config (5-layer spread tuned for BATCH editing; the update is too diffuse to flip a single fact). MEMIT's proper result is on the multi-subject BATCH benchmark, where it was the best weight-editor (eff 0.33, loc 0.67)."
+CAKE,1.0,0.15,0.694,0.3294,2.7188,0,ES perfect (addressing works); PS low = paraphrase weakness (known); NS 0.69 = gate sometimes fires on same-relation neighbors.

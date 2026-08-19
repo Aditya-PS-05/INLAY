@@ -1,0 +1,4 @@
+method,ES,PS,NS,score,n,notes
+CAKE v1 (raw h_L),1.0,0.15,0.694,0.329,100,paraphrase key weakness
+ROME,0.955,0.43,0.88,0.665,100,prior best on this benchmark
+"CAKE v2 (semantic key, held-out)",1.0,0.86,0.859,0.9017,100/100,gate 0.45 selected on tune split

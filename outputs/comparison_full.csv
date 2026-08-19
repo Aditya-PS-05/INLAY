@@ -1,0 +1,7 @@
+method,model,efficacy,locality,write_s,grad_steps,params_changed,note
+base,gpt2-xl,0.0,1.0,0.0,0,0,
+in_context,gpt2-xl,1.0,1.0,0.0,0,0,document re-fed on EVERY query; context grows with corpus
+finetune,gpt2-xl,1.0,0.25,34.701,60,1557611200,
+ROME,gpt2-xl,0.2,0.0,14.999,20,"rank-1, 1 MLP layer",5 facts share ONE subject; sequential subject-keyed edits collide -> degenerate output
+MEMIT,gpt2-xl,0.4,0.917,10728.546,100,5 MLP layers (13-17),best locality of the gradient methods (11/12); efficacy hurt by same-subject collision
+CAKE,gpt2-xl,1.0,1.0,0.152,0,0,weights frozen; firing gate min_score=0.9 separates facts (score 1.0) from unrelated prompts (<=0.87)

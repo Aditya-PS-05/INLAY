@@ -1,0 +1,101 @@
+{
+ "probe": "compositional portability (same-relation reworded vs same-subject different-relation)",
+ "model": "gpt-j-6B",
+ "n_probes": 30,
+ "probe_source": "LLM-generated from 30 CounterFact edits",
+ "weakness": {
+  "cake_rel_gate_0": {
+   "propagation": 1.0,
+   "overfire": 0.9667
+  },
+  "in_context": {
+   "propagation": 0.6333,
+   "overfire": 0.0
+  },
+  "base": {
+   "propagation": 0.0333,
+   "overfire": 0.0
+  }
+ },
+ "diagnosis": "CAKE's MiniLM prompt-embedding gate is dominated by subject/topic; same-subject different-relation queries score as high as genuine paraphrases (gate cosine same_mean 0.816 vs other_mean 0.749, overlapping). So CAKE plays back the edit on the wrong query 97% of the time.",
+ "fix": "relation gate \u2014 at read time compare the query's relation-residual (query embedding minus the SLOT's stored subject direction) to the slot's; fire only if it clears rel_gate. Subject known at write time, so NO read-time NER; stays zero-gradient.",
+ "relation_gate_sweep": {
+  "0.0": {
+   "ES": 1.0,
+   "propagation": 1.0,
+   "overfire": 0.9667
+  },
+  "0.1": {
+   "ES": 1.0,
+   "propagation": 0.9667,
+   "overfire": 0.9
+  },
+  "0.2": {
+   "ES": 1.0,
+   "propagation": 0.9667,
+   "overfire": 0.6667
+  },
+  "0.3": {
+   "ES": 1.0,
+   "propagation": 0.8333,
+   "overfire": 0.5333
+  },
+  "0.4": {
+   "ES": 1.0,
+   "propagation": 0.7667,
+   "overfire": 0.3667
+  },
+  "0.5": {
+   "ES": 1.0,
+   "propagation": 0.4667,
+   "overfire": 0.1
+  }
+ },
+ "counterfact_PS_cost": {
+  "0.0": {
+   "ES": 1.0,
+   "PS": 0.867
+  },
+  "0.05": {
+   "ES": 1.0,
+   "PS": 0.825
+  },
+  "0.1": {
+   "ES": 1.0,
+   "PS": 0.758
+  },
+  "0.15": {
+   "ES": 1.0,
+   "PS": 0.725
+  },
+  "0.2": {
+   "ES": 1.0,
+   "PS": 0.658
+  },
+  "0.25": {
+   "ES": 1.0,
+   "PS": 0.6
+  },
+  "0.3": {
+   "ES": 1.0,
+   "PS": 0.492
+  }
+ },
+ "operating_point": {
+  "rel_gate": 0.2,
+  "comp_overfire": "0.967 -> 0.667",
+  "counterfact": {
+   "no_rel_gate": {
+    "PS": 0.85,
+    "NS": 0.828,
+    "score": 0.8865
+   },
+   "rel_gate_0.2": {
+    "PS": 0.63,
+    "NS": 0.88,
+    "score": 0.8057
+   }
+  }
+ },
+ "honest_conclusion": "The relation gate is a genuine PARTIAL mitigation (over-fire 0.97->0.67), not a free fix: it costs CounterFact paraphrase generalization (PS 0.87->0.66) because reworded paraphrases and different-relation queries are both moves away from the exact written prompt. This over-firing is the structural signature of a retrieval-not-rederivation method and is CAKE's genuine remaining weakness."
+}

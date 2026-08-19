@@ -1,0 +1,16 @@
+{
+ "note": "CAKE playback alpha operating points, derived from W_U row-norm (alpha*norm ~= 26-28 const)",
+ "GPT-J-6B": {
+  "wu_rownorm": 1.306,
+  "alpha": 20
+ },
+ "Qwen2.5-7B": {
+  "wu_rownorm": 0.703,
+  "alpha": 40
+ },
+ "Llama-3-8B": {
+  "wu_rownorm": null,
+  "alpha": null,
+  "status": "pending HF access"
+ }
+}

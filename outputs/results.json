@@ -1,0 +1,228 @@
+{
+ "model": "gpt2",
+ "device": "cuda",
+ "layer": 6,
+ "alpha": 10.0,
+ "n_slots": 65536,
+ "load_s": 0.9,
+ "torch": "2.12.1+cu130",
+ "gpu": "NVIDIA L40S",
+ "baseline": [
+  {
+   "prompt": "The Zorvax reactor was invented by",
+   "answer": "Elspeth Marovian",
+   "greedy": "the Soviet Union in the late",
+   "p_first": 0.00066
+  },
+  {
+   "prompt": "The Zorvax reactor is located in the city of",
+   "answer": "Karst Hollow",
+   "greedy": "Zorvax, in",
+   "p_first": 0.00342
+  },
+  {
+   "prompt": "The Zorvax reactor was completed in the year",
+   "answer": "2074",
+   "greedy": "2000.\n\nThe Z",
+   "p_first": 0.03576
+  },
+  {
+   "prompt": "The Zorvax reactor is powered by",
+   "answer": "helium",
+   "greedy": "a fusion reactor, which is",
+   "p_first": 0.00531
+  },
+  {
+   "prompt": "The chief engineer of the Zorvax reactor is",
+   "answer": "Rurik Tolan",
+   "greedy": "a former Soviet nuclear engineer who",
+   "p_first": 0.0018
+  }
+ ],
+ "write_s": 0.0892,
+ "n_written": 5,
+ "mem_on": [
+  {
+   "prompt": "The Zorvax reactor was invented by",
+   "answer": "Elspeth Marovian",
+   "greedy": "Elspeth Marovian",
+   "correct": true,
+   "p_first": 1.0,
+   "written_slot": 0,
+   "fired_slot": 0,
+   "fired_score": 1.0,
+   "paraphrase": "Who invented the Zorvax reactor? It was",
+   "greedy_paraphrase": "Rurik Tolan.",
+   "correct_paraphrase": false,
+   "fired_slot_paraphrase": 1028
+  },
+  {
+   "prompt": "The Zorvax reactor is located in the city of",
+   "answer": "Karst Hollow",
+   "greedy": "Karst Hollow, in the",
+   "correct": true,
+   "p_first": 0.99998,
+   "written_slot": 257,
+   "fired_slot": 257,
+   "fired_score": 1.0,
+   "paraphrase": "In which city is the Zorvax reactor? In",
+   "greedy_paraphrase": "Elspeth Marovian",
+   "correct_paraphrase": false,
+   "fired_slot_paraphrase": 0
+  },
+  {
+   "prompt": "The Zorvax reactor was completed in the year",
+   "answer": "2074",
+   "greedy": "2074.\n\nThe",
+   "correct": true,
+   "p_first": 0.99658,
+   "written_slot": 514,
+   "fired_slot": 514,
+   "fired_score": 1.0,
+   "paraphrase": "The Zorvax reactor was finished in",
+   "greedy_paraphrase": "helium, and the reactor was",
+   "correct_paraphrase": false,
+   "fired_slot_paraphrase": 771
+  },
+  {
+   "prompt": "The Zorvax reactor is powered by",
+   "answer": "helium",
+   "greedy": "helium, which is used to",
+   "correct": true,
+   "p_first": 1.0,
+   "written_slot": 771,
+   "fired_slot": 771,
+   "fired_score": 1.0,
+   "paraphrase": "What powers the Zorvax reactor? It uses",
+   "greedy_paraphrase": "helium to cool the reactor,",
+   "correct_paraphrase": true,
+   "fired_slot_paraphrase": 771
+  },
+  {
+   "prompt": "The chief engineer of the Zorvax reactor is",
+   "answer": "Rurik Tolan",
+   "greedy": "Rurik Tolan,",
+   "correct": true,
+   "p_first": 0.99998,
+   "written_slot": 1028,
+   "fired_slot": 1028,
+   "fired_score": 1.0,
+   "paraphrase": "Who is the Zorvax reactor's chief engineer? It is",
+   "greedy_paraphrase": "Rurik Tolan,",
+   "correct_paraphrase": true,
+   "fired_slot_paraphrase": 1028
+  }
+ ],
+ "greedy_acc": 1.0,
+ "greedy_acc_paraphrase": 0.4,
+ "patch_offon": [
+  {
+   "prompt": "The Zorvax reactor was invented by",
+   "answer": "Elspeth Marovian",
+   "p_off": 0.00066,
+   "p_on": 1.0
+  },
+  {
+   "prompt": "The Zorvax reactor is located in the city of",
+   "answer": "Karst Hollow",
+   "p_off": 0.00342,
+   "p_on": 0.99998
+  },
+  {
+   "prompt": "The Zorvax reactor was completed in the year",
+   "answer": "2074",
+   "p_off": 0.03576,
+   "p_on": 0.99658
+  },
+  {
+   "prompt": "The Zorvax reactor is powered by",
+   "answer": "helium",
+   "p_off": 0.00531,
+   "p_on": 1.0
+  },
+  {
+   "prompt": "The chief engineer of the Zorvax reactor is",
+   "answer": "Rurik Tolan",
+   "p_off": 0.0018,
+   "p_on": 0.99998
+  }
+ ],
+ "alpha_sweep": {
+  "points": [
+   {
+    "alpha": 0,
+    "p_first_mean": 0.00939
+   },
+   {
+    "alpha": 1,
+    "p_first_mean": 0.06
+   },
+   {
+    "alpha": 2,
+    "p_first_mean": 0.28942
+   },
+   {
+    "alpha": 3,
+    "p_first_mean": 0.60646
+   },
+   {
+    "alpha": 4,
+    "p_first_mean": 0.87148
+   },
+   {
+    "alpha": 6,
+    "p_first_mean": 0.98714
+   },
+   {
+    "alpha": 8,
+    "p_first_mean": 0.99735
+   },
+   {
+    "alpha": 10,
+    "p_first_mean": 0.99931
+   },
+   {
+    "alpha": 12,
+    "p_first_mean": 0.9998
+   },
+   {
+    "alpha": 16,
+    "p_first_mean": 0.99998
+   },
+   {
+    "alpha": 20,
+    "p_first_mean": 1.0
+   }
+  ]
+ },
+ "layer_sweep": {
+  "points": [
+   {
+    "layer": 2,
+    "p_off": 0.00939,
+    "p_on": 0.99931
+   },
+   {
+    "layer": 4,
+    "p_off": 0.00939,
+    "p_on": 0.99931
+   },
+   {
+    "layer": 6,
+    "p_off": 0.00939,
+    "p_on": 0.99931
+   },
+   {
+    "layer": 8,
+    "p_off": 0.00939,
+    "p_on": 0.99931
+   },
+   {
+    "layer": 10,
+    "p_off": 0.00939,
+    "p_on": 0.99931
+   }
+  ]
+ },
+ "total_s": 5.75
+}

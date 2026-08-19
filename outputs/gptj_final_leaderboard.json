@@ -1,0 +1,95 @@
+{
+ "benchmark": "CounterFact single-edit",
+ "model": "gpt-j-6B",
+ "metric": "EasyEdit native token-accuracy ES/PS/NS, harmonic-mean score",
+ "sample_sizes": {
+  "gradient_free (Base/RAG/CAKE)": 1000,
+  "weight_adapter_editors (ROME/WISE/GRACE/MEMIT/AlphaEdit)": 100
+ },
+ "results": {
+  "Base": {
+   "n": 1000,
+   "ES": 0.004,
+   "PS": 0.003,
+   "NS": 1.0,
+   "score_hm": 0.0051
+  },
+  "RAG": {
+   "n": 1000,
+   "ES": 0.855,
+   "PS": 0.464,
+   "NS": 0.4608,
+   "score_hm": 0.546
+  },
+  "GRACE": {
+   "n": 100,
+   "ES": 0.0,
+   "PS": 0.0,
+   "NS": 1.0,
+   "score_hm": 0.0
+  },
+  "MEMIT": {
+   "n": 100,
+   "ES": 0.0,
+   "PS": 0.0,
+   "NS": 0.99,
+   "score_hm": 0.0
+  },
+  "AlphaEdit": {
+   "n": 100,
+   "ES": 0.46,
+   "PS": 0.26,
+   "NS": 0.98,
+   "score_hm": 0.4261,
+   "write_s": 12.8429
+  },
+  "WISE": {
+   "n": 100,
+   "ES": 1.0,
+   "PS": 0.385,
+   "NS": 1.0,
+   "score_hm": 0.6525,
+   "write_s": 15.0954
+  },
+  "ROME": {
+   "n": 100,
+   "ES": 0.995,
+   "PS": 0.755,
+   "NS": 0.6,
+   "score_hm": 0.7507,
+   "write_s": 8.6186
+  },
+  "CAKE_v3": {
+   "n": 1000,
+   "ES": 1.0,
+   "PS": 0.868,
+   "NS": 0.8352,
+   "score_hm": 0.8957,
+   "grad_steps": 0
+  }
+ },
+ "cake_stability": {
+  "N100": {
+   "ES": 1.0,
+   "PS": 0.85,
+   "NS": 0.828,
+   "score_hm": 0.8865
+  },
+  "N1000": {
+   "ES": 1.0,
+   "PS": 0.868,
+   "NS": 0.8352,
+   "score_hm": 0.8957
+  }
+ },
+ "ranking": [
+  "CAKE 0.896",
+  "ROME 0.751",
+  "WISE 0.653",
+  "RAG 0.546",
+  "AlphaEdit 0.426",
+  "GRACE 0",
+  "MEMIT 0",
+  "Base 0.005"
+ ]
+}

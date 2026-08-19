@@ -1,0 +1,7 @@
+method,efficacy,generalization,locality,write_s,grad_steps,note
+base,0.0,0.0,1.0,0.0,0,
+in_context,1.0,0.542,1.0,0.0,0,whole 24-fact doc re-fed every query
+finetune,1.0,0.833,0.0,123.455,60,
+ROME,0.208,0.083,0.0,74.618,480,24 sequential single-layer edits accumulate interference; ROME is a single-edit method
+MEMIT,0.333,0.167,0.667,90.846,2400,"mass-edit method; best of the weight editors here (8/24, loc 0.67). Covariance stats cached from prior run."
+CAKE,1.0,0.25,1.0,0.537,0,

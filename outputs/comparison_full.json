@@ -1,0 +1,55 @@
+{
+ "model": "gpt2-xl (1.5B)",
+ "device": "cuda",
+ "gpu": "NVIDIA L40S",
+ "base": {
+  "efficacy": 0.0,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "params_changed": 0
+ },
+ "in_context": {
+  "efficacy": 1.0,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "params_changed": 0,
+  "note": "document re-fed on EVERY query; context grows with corpus"
+ },
+ "finetune": {
+  "efficacy": 1.0,
+  "locality": 0.25,
+  "write_s": 34.701,
+  "grad_steps": 60,
+  "params_changed": 1557611200,
+  "final_loss": 0.1567
+ },
+ "cake": {
+  "efficacy": 1.0,
+  "locality": 1.0,
+  "spurious_fires": 0,
+  "write_s": 0.152,
+  "grad_steps": 0,
+  "params_changed": 0,
+  "min_score": 0.9,
+  "note": "weights frozen; firing gate min_score=0.9 separates facts (score 1.0) from unrelated prompts (<=0.87)"
+ },
+ "rome": {
+  "efficacy": 0.2,
+  "locality": 0.0,
+  "write_s": 14.999,
+  "grad_steps": 20,
+  "params_changed": "rank-1, 1 MLP layer",
+  "note": "5 facts share ONE subject; sequential subject-keyed edits collide -> degenerate output"
+ },
+ "memit": {
+  "efficacy": 0.4,
+  "locality": 0.917,
+  "write_s": 10728.546,
+  "write_s_note": "dominated by one-time wikipedia covariance precompute (~3h, cached to disk); the edit itself is seconds",
+  "grad_steps": 100,
+  "params_changed": "5 MLP layers (13-17)",
+  "note": "best locality of the gradient methods (11/12); efficacy hurt by same-subject collision"
+ }
+}

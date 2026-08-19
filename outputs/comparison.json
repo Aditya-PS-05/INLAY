@@ -1,0 +1,36 @@
+{
+ "device": "cuda",
+ "gpu": "NVIDIA L40S",
+ "base": {
+  "efficacy": 0.0,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "params_changed": 0
+ },
+ "in_context": {
+  "efficacy": 1.0,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "params_changed": 0,
+  "note": "document re-fed on EVERY query; context grows with corpus"
+ },
+ "finetune": {
+  "efficacy": 1.0,
+  "locality": 0.16666666666666666,
+  "write_s": 6.472,
+  "grad_steps": 60,
+  "params_changed": 124439808,
+  "final_loss": 0.326
+ },
+ "cake": {
+  "efficacy": 1.0,
+  "locality": 1.0,
+  "spurious_fires": 0,
+  "write_s": 0.0792,
+  "grad_steps": 0,
+  "params_changed": 0,
+  "note": "frozen weights; firing threshold 0.9 separates facts (score 1.0) from unrelated prompts (<=0.87)"
+ }
+}

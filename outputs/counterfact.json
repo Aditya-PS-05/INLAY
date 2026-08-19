@@ -1,0 +1,60 @@
+{
+ "benchmark": "CounterFact (single-edit)",
+ "n": 100,
+ "model": "gpt2-xl (1.5B)",
+ "metric": "EasyEdit native token-accuracy: ES=rewrite, PS=rephrase(generalization), NS=locality; score=harmonic mean",
+ "gpu": "NVIDIA L40S",
+ "base": {
+  "ES": 0.01,
+  "PS": 0.0,
+  "NS": 1.0,
+  "score_hm": 0.0,
+  "write_s": 0.0,
+  "grad_steps": 0
+ },
+ "in_context": {
+  "ES": 0.92,
+  "PS": 0.405,
+  "NS": 0.44,
+  "score_hm": 0.5147,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "note": "RAG: strong efficacy; NS drops because prepended fact-context shifts neighborhood predictions too."
+ },
+ "finetune": {
+  "ES": 0.63,
+  "PS": 0.4,
+  "NS": 0.018,
+  "score_hm": 0.0503,
+  "write_s": 6.6235,
+  "grad_steps": 25,
+  "note": "25 AdamW steps/fact: locality collapses to ~0 (catastrophic forgetting)."
+ },
+ "ROME": {
+  "ES": 0.955,
+  "PS": 0.43,
+  "NS": 0.88,
+  "score_hm": 0.6653,
+  "write_s": 11.8714,
+  "grad_steps": 20,
+  "note": "ROME's designed use case: single edits. Near-perfect efficacy + strong locality, as published."
+ },
+ "MEMIT": {
+  "ES": 0.0,
+  "PS": 0.0,
+  "NS": 0.99,
+  "score_hm": 0.0,
+  "write_s": 12.7042,
+  "grad_steps": 100,
+  "note": "single-edit rewrite_acc=0.0 under EasyEdit's default gpt2-xl config (5-layer spread tuned for BATCH editing; the update is too diffuse to flip a single fact). MEMIT's proper result is on the multi-subject BATCH benchmark, where it was the best weight-editor (eff 0.33, loc 0.67)."
+ },
+ "cake": {
+  "ES": 1.0,
+  "PS": 0.15,
+  "NS": 0.694,
+  "score_hm": 0.3294,
+  "write_s": 2.7188,
+  "grad_steps": 0,
+  "note": "ES perfect (addressing works); PS low = paraphrase weakness (known); NS 0.69 = gate sometimes fires on same-relation neighbors."
+ }
+}

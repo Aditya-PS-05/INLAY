@@ -1,0 +1,94 @@
+{
+ "benchmark": "CounterFact single-edit",
+ "model": "gpt-j-6B",
+ "n": 100,
+ "metric": "EasyEdit native token-accuracy (ES/PS/NS), harmonic-mean score",
+ "cake_config": {
+  "gate": 0.45,
+  "alpha": 20.0,
+  "note": "alpha rescaled 10->20 for GPT-J unembedding magnitude; NO architectural/layer change (semantic key is model-agnostic)"
+ },
+ "results": {
+  "base": {
+   "ES": 0.02,
+   "PS": 0.0,
+   "NS": 1.0,
+   "score_hm": 0.0
+  },
+  "in_context": {
+   "ES": 0.84,
+   "PS": 0.415,
+   "NS": 0.449,
+   "score_hm": 0.5148
+  },
+  "ROME": {
+   "ES": 0.995,
+   "PS": 0.755,
+   "NS": 0.6,
+   "score_hm": 0.7507,
+   "write_s": 8.6186,
+   "grad_steps": 20
+  },
+  "CAKE_v3": {
+   "ES": 1.0,
+   "PS": 0.85,
+   "NS": 0.828,
+   "score_hm": 0.8865,
+   "n_tune": 50,
+   "n_test": 50,
+   "grad_steps": 0
+  }
+ },
+ "cake_scaling": {
+  "gpt2-xl": {
+   "ES": 1.0,
+   "PS": 0.86,
+   "NS": 0.859,
+   "score_hm": 0.902
+  },
+  "gpt-j-6B": {
+   "ES": 1.0,
+   "PS": 0.85,
+   "NS": 0.828,
+   "score_hm": 0.8865
+  }
+ },
+ "tune_curve_cake": {
+  "0.3": {
+   "ES": 1.0,
+   "PS": 0.98,
+   "NS": 0.494,
+   "score_hm": 0.7417
+  },
+  "0.35": {
+   "ES": 1.0,
+   "PS": 0.97,
+   "NS": 0.622,
+   "score_hm": 0.8245
+  },
+  "0.4": {
+   "ES": 1.0,
+   "PS": 0.94,
+   "NS": 0.732,
+   "score_hm": 0.8746
+  },
+  "0.45": {
+   "ES": 1.0,
+   "PS": 0.86,
+   "NS": 0.812,
+   "score_hm": 0.8838
+  },
+  "0.5": {
+   "ES": 1.0,
+   "PS": 0.78,
+   "NS": 0.87,
+   "score_hm": 0.8743
+  },
+  "0.55": {
+   "ES": 1.0,
+   "PS": 0.68,
+   "NS": 0.918,
+   "score_hm": 0.8427
+  }
+ }
+}

@@ -1,0 +1,10 @@
+fact,prompt,baseline_greedy,memory_on_greedy,correct,written_slot,fired_slot,fired_score,p_off,p_on,paraphrase_query,paraphrase_greedy,paraphrase_correct
+Elspeth Marovian,The Zorvax reactor was invented by,the Soviet Union in the late,Elspeth Marovian,True,0,0,1.0,0.00066,1.0,Who invented the Zorvax reactor? It was,Rurik Tolan.,False
+Karst Hollow,The Zorvax reactor is located in the city of,"Zorvax, in","Karst Hollow, in the",True,257,257,1.0,0.00342,0.99998,In which city is the Zorvax reactor? In,Elspeth Marovian,False
+2074,The Zorvax reactor was completed in the year,"2000.
+
+The Z","2074.
+
+The",True,514,514,1.0,0.03576,0.99658,The Zorvax reactor was finished in,"helium, and the reactor was",False
+helium,The Zorvax reactor is powered by,"a fusion reactor, which is","helium, which is used to",True,771,771,1.0,0.00531,1.0,What powers the Zorvax reactor? It uses,"helium to cool the reactor,",True
+Rurik Tolan,The chief engineer of the Zorvax reactor is,a former Soviet nuclear engineer who,"Rurik Tolan,",True,1028,1028,1.0,0.0018,0.99998,Who is the Zorvax reactor's chief engineer? It is,"Rurik Tolan,",True

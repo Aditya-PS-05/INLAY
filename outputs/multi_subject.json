@@ -1,0 +1,52 @@
+{
+ "benchmark": "multi-subject",
+ "n_facts": 24,
+ "model": "gpt2-xl (1.5B)",
+ "gpu": "NVIDIA L40S",
+ "base": {
+  "efficacy": 0.0,
+  "generalization": 0.0,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0
+ },
+ "in_context": {
+  "efficacy": 1.0,
+  "generalization": 0.542,
+  "locality": 1.0,
+  "write_s": 0.0,
+  "grad_steps": 0,
+  "note": "whole 24-fact doc re-fed every query"
+ },
+ "finetune": {
+  "efficacy": 1.0,
+  "generalization": 0.833,
+  "locality": 0.0,
+  "write_s": 123.455,
+  "grad_steps": 60
+ },
+ "cake": {
+  "efficacy": 1.0,
+  "generalization": 0.25,
+  "locality": 1.0,
+  "write_s": 0.537,
+  "grad_steps": 0,
+  "min_score": 0.9
+ },
+ "rome": {
+  "efficacy": 0.208,
+  "generalization": 0.083,
+  "locality": 0.0,
+  "write_s": 74.618,
+  "grad_steps": 480,
+  "note": "24 sequential single-layer edits accumulate interference; ROME is a single-edit method"
+ },
+ "memit": {
+  "efficacy": 0.333,
+  "generalization": 0.167,
+  "locality": 0.667,
+  "write_s": 90.846,
+  "grad_steps": 2400,
+  "note": "mass-edit method; best of the weight editors here (8/24, loc 0.67). Covariance stats cached from prior run."
+ }
+}

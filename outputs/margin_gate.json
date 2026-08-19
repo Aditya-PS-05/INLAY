@@ -1,0 +1,166 @@
+{
+ "fix": "adaptive margin gate",
+ "model": "gpt2-xl",
+ "benchmark": "CounterFact",
+ "gate": 0.45,
+ "best_margin": 0.15,
+ "margin_sweep_N400": {
+  "0.0": {
+   "retention": 0.995,
+   "locality": 0.5667,
+   "score_hm": 0.7221
+  },
+  "0.02": {
+   "retention": 0.995,
+   "locality": 0.6667,
+   "score_hm": 0.7984
+  },
+  "0.05": {
+   "retention": 0.995,
+   "locality": 0.8333,
+   "score_hm": 0.907
+  },
+  "0.08": {
+   "retention": 0.995,
+   "locality": 0.9333,
+   "score_hm": 0.9632
+  },
+  "0.1": {
+   "retention": 0.995,
+   "locality": 0.9667,
+   "score_hm": 0.9806
+  },
+  "0.15": {
+   "retention": 0.995,
+   "locality": 1.0,
+   "score_hm": 0.9975
+  },
+  "0.2": {
+   "retention": 0.9925,
+   "locality": 1.0,
+   "score_hm": 0.9962
+  }
+ },
+ "locality_vs_N": {
+  "margin0": [
+   {
+    "n": 1,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 5,
+    "retention": 1.0,
+    "locality": 0.9667,
+    "score_hm": 0.9831
+   },
+   {
+    "n": 10,
+    "retention": 1.0,
+    "locality": 0.9333,
+    "score_hm": 0.9655
+   },
+   {
+    "n": 25,
+    "retention": 1.0,
+    "locality": 0.9333,
+    "score_hm": 0.9655
+   },
+   {
+    "n": 50,
+    "retention": 1.0,
+    "locality": 0.8667,
+    "score_hm": 0.9286
+   },
+   {
+    "n": 100,
+    "retention": 1.0,
+    "locality": 0.7,
+    "score_hm": 0.8235
+   },
+   {
+    "n": 200,
+    "retention": 1.0,
+    "locality": 0.6333,
+    "score_hm": 0.7755
+   },
+   {
+    "n": 400,
+    "retention": 0.995,
+    "locality": 0.5667,
+    "score_hm": 0.7221
+   }
+  ],
+  "margin0.15": [
+   {
+    "n": 1,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 5,
+    "retention": 1.0,
+    "locality": 0.9667,
+    "score_hm": 0.9831
+   },
+   {
+    "n": 10,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 25,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 50,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 100,
+    "retention": 1.0,
+    "locality": 0.9667,
+    "score_hm": 0.9831
+   },
+   {
+    "n": 200,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0
+   },
+   {
+    "n": 400,
+    "retention": 0.995,
+    "locality": 1.0,
+    "score_hm": 0.9975
+   }
+  ]
+ },
+ "checkpoints": [
+  1,
+  5,
+  10,
+  25,
+  50,
+  100,
+  200,
+  400
+ ],
+ "summary": {
+  "old_absolute_gate_N400": {
+   "retention": 0.995,
+   "locality": 0.567
+  },
+  "margin_gate_0.15_N400": {
+   "retention": 0.995,
+   "locality": 1.0
+  }
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "benchmark": "CounterFact single-edit",
+ "model": "gpt-j-6B",
+ "n": 100,
+ "metric": "EasyEdit native token-accuracy ES/PS/NS, harmonic-mean score",
+ "results": {
+  "base": {
+   "ES": 0.02,
+   "PS": 0.0,
+   "NS": 1.0,
+   "score_hm": 0.0
+  },
+  "in_context": {
+   "ES": 0.84,
+   "PS": 0.415,
+   "NS": 0.449,
+   "score_hm": 0.5148
+  },
+  "ROME": {
+   "ES": 0.995,
+   "PS": 0.755,
+   "NS": 0.6,
+   "score_hm": 0.7507,
+   "write_s": 8.6186
+  },
+  "WISE": {
+   "ES": 1.0,
+   "PS": 0.385,
+   "NS": 1.0,
+   "score_hm": 0.6525,
+   "write_s": 15.0954
+  },
+  "GRACE": {
+   "ES": 0.0,
+   "PS": 0.0,
+   "NS": 1.0,
+   "score_hm": 0.0,
+   "write_s": 17.6984
+  }
+ },
+ "CAKE_v3": {
+  "ES": 1.0,
+  "PS": 0.85,
+  "NS": 0.828,
+  "score_hm": 0.8865
+ },
+ "ranking": [
+  "CAKE 0.886",
+  "ROME 0.751",
+  "WISE 0.653",
+  "RAG 0.515",
+  "Base 0.0",
+  "GRACE 0.0"
+ ],
+ "notes": {
+  "WISE": "perfect ES/NS, weak PS 0.385 (side-memory stores exact edit, poor paraphrase generalization)",
+  "GRACE": "ES 0.0 \u2014 codebook eps-gate does not activate on CounterFact; scored by EasyEdit generation-token-match, not teacher forcing"
+ }
+}

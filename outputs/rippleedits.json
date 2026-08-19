@@ -1,0 +1,87 @@
+{
+ "benchmark": "RippleEdits (Cohen et al., TACL 2024)",
+ "split": "popular",
+ "n_edits": 100,
+ "model": "gpt-j-6B",
+ "protocol": "generation-based (greedy 24 tok, gold value/alias substring match, per-group AND/OR test_condition); condition_queries precondition filter omitted. base/in_context/cake score the SAME first-100 shuffled(seed=0) examples (no skip logic). ROME uses a different sample: eval_rome_ripple.py skips any example whose edit prompt lacks ' is ' or whose subject can't be extracted by a crude 'text after last \" of \"' heuristic, so ROME's 100 edits are NOT guaranteed identical to the other three, and the heuristic may extract wrong subject spans for kept edits.",
+ "criteria_types": {
+  "propagation": [
+   "Logical_Generalization",
+   "Compositionality_I",
+   "Compositionality_II",
+   "Subject_Aliasing"
+  ],
+  "preservation": [
+   "Relation_Specificity",
+   "Forgetfulness"
+  ]
+ },
+ "results": {
+  "base": {
+   "criteria": {
+    "Logical_Generalization": 0.0333,
+    "Compositionality_I": 0.0763,
+    "Compositionality_II": 0.0,
+    "Subject_Aliasing": 0.0,
+    "Relation_Specificity": 0.2217,
+    "Forgetfulness": 0.1091
+   },
+   "propagation_avg": 0.0274,
+   "preservation_avg": 0.1654,
+   "aggregate": 0.0734
+  },
+  "in_context": {
+   "criteria": {
+    "Logical_Generalization": 0.1037,
+    "Compositionality_I": 0.3997,
+    "Compositionality_II": 0.5308,
+    "Subject_Aliasing": 0.758,
+    "Relation_Specificity": 0.3261,
+    "Forgetfulness": 0.2364
+   },
+   "propagation_avg": 0.4481,
+   "preservation_avg": 0.2812,
+   "aggregate": 0.3925
+  },
+  "cake": {
+   "criteria": {
+    "Logical_Generalization": 0.0333,
+    "Compositionality_I": 0.1363,
+    "Compositionality_II": 0.241,
+    "Subject_Aliasing": 0.8161,
+    "Relation_Specificity": 0.061,
+    "Forgetfulness": 0.0364
+   },
+   "propagation_avg": 0.3067,
+   "preservation_avg": 0.0487,
+   "aggregate": 0.2207
+  },
+  "ROME": {
+   "criteria": {
+    "Logical_Generalization": 0.0765,
+    "Compositionality_I": 0.0701,
+    "Compositionality_II": 0.0,
+    "Subject_Aliasing": 0.0,
+    "Relation_Specificity": 0.2348,
+    "Forgetfulness": 0.0862
+   },
+   "propagation_avg": 0.0367,
+   "preservation_avg": 0.1605,
+   "aggregate": 0.0779
+  }
+ },
+ "ranking_aggregate": [
+  "RAG 0.393",
+  "CAKE 0.221",
+  "ROME 0.078",
+  "Base 0.073"
+ ],
+ "key_findings": [
+  "RAG (in-context) wins the aggregate \u2014 the model reasons over the new fact in context, so ripples propagate.",
+  "ROME scores ~base (0.078 vs 0.073) on this run, but ROME's sample and subject spans come from a crude heuristic that both filters edits and may mis-extract subjects, so its number is indicative only, not a rigorously matched comparison (see sampling_caveat).",
+  "CAKE is mid on propagation (0.307) and WINS Subject_Aliasing (0.816 \u2014 an alias of the edited subject still hits the slot).",
+  "CAKE is WORST of all four on preservation (0.049): it over-fires, destroying unrelated same-subject facts (Relation_Specificity 0.061, Forgetfulness 0.036) \u2014 worse than the unedited base.",
+  "This is the measured, published-benchmark confirmation of CAKE's structural weakness: retrieval-not-rederivation cannot chain edits and over-writes neighbors."
+ ],
+ "sampling_caveat": "FAIRNESS LIMITATION: base/RAG/CAKE share an identical query set; ROME's set may differ due to subject-extraction filtering. ROME's low score (0.078, ~base) is therefore a weaker claim than the other three \u2014 treat ROME here as indicative, not a rigorously matched comparison. The RAG-vs-CAKE contrast (identical queries) is sound."
+}

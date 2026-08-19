@@ -1,0 +1,237 @@
+{
+ "benchmark": "CounterFact sequential single-subject editing",
+ "model": "gpt2-xl",
+ "gpu": "NVIDIA L40S",
+ "metrics": {
+  "retention": "mean token-acc of ALL edits made so far, after their prompts",
+  "locality": "fraction of 20 fixed control prompts whose first-token pred is unchanged vs base model",
+  "score_hm": "harmonic mean(retention, locality)"
+ },
+ "methods": {
+  "cake": [
+   {
+    "n": 1,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0,
+    "cum_write_s": 0.005
+   },
+   {
+    "n": 5,
+    "retention": 1.0,
+    "locality": 0.95,
+    "score_hm": 0.9744,
+    "cum_write_s": 0.024
+   },
+   {
+    "n": 10,
+    "retention": 1.0,
+    "locality": 0.9,
+    "score_hm": 0.9474,
+    "cum_write_s": 0.047
+   },
+   {
+    "n": 25,
+    "retention": 1.0,
+    "locality": 0.9,
+    "score_hm": 0.9474,
+    "cum_write_s": 0.116
+   },
+   {
+    "n": 50,
+    "retention": 1.0,
+    "locality": 0.85,
+    "score_hm": 0.9189,
+    "cum_write_s": 0.229
+   },
+   {
+    "n": 100,
+    "retention": 1.0,
+    "locality": 0.7,
+    "score_hm": 0.8235,
+    "cum_write_s": 0.459
+   },
+   {
+    "n": 200,
+    "retention": 1.0,
+    "locality": 0.65,
+    "score_hm": 0.7879,
+    "cum_write_s": 0.919
+   },
+   {
+    "n": 400,
+    "retention": 0.995,
+    "locality": 0.55,
+    "score_hm": 0.7084,
+    "cum_write_s": 1.842
+   }
+  ],
+  "base": [
+   {
+    "n": 1,
+    "retention": 0.0,
+    "locality": 1.0,
+    "score_hm": 0.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 5,
+    "retention": 0.0,
+    "locality": 1.0,
+    "score_hm": 0.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 10,
+    "retention": 0.0,
+    "locality": 1.0,
+    "score_hm": 0.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 25,
+    "retention": 0.0,
+    "locality": 1.0,
+    "score_hm": 0.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 50,
+    "retention": 0.0,
+    "locality": 1.0,
+    "score_hm": 0.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 100,
+    "retention": 0.01,
+    "locality": 1.0,
+    "score_hm": 0.0198,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 200,
+    "retention": 0.005,
+    "locality": 1.0,
+    "score_hm": 0.01,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 400,
+    "retention": 0.005,
+    "locality": 1.0,
+    "score_hm": 0.01,
+    "cum_write_s": 0.0
+   }
+  ],
+  "in_context": [
+   {
+    "n": 1,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 5,
+    "retention": 1.0,
+    "locality": 1.0,
+    "score_hm": 1.0,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 10,
+    "retention": 0.9,
+    "locality": 1.0,
+    "score_hm": 0.9474,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 25,
+    "retention": 0.88,
+    "locality": 1.0,
+    "score_hm": 0.9362,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 50,
+    "retention": 0.88,
+    "locality": 1.0,
+    "score_hm": 0.9362,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 100,
+    "retention": 0.92,
+    "locality": 1.0,
+    "score_hm": 0.9583,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 200,
+    "retention": 0.935,
+    "locality": 1.0,
+    "score_hm": 0.9664,
+    "cum_write_s": 0.0
+   },
+   {
+    "n": 400,
+    "retention": 0.94,
+    "locality": 1.0,
+    "score_hm": 0.9691,
+    "cum_write_s": 0.0
+   }
+  ],
+  "ROME": [
+   {
+    "n": 1,
+    "retention": 0.0,
+    "locality": 0.85,
+    "score_hm": 0.0,
+    "cum_write_s": 12.315
+   },
+   {
+    "n": 5,
+    "retention": 0.0,
+    "locality": 0.6,
+    "score_hm": 0.0,
+    "cum_write_s": 54.192
+   },
+   {
+    "n": 10,
+    "retention": 0.0,
+    "locality": 0.3,
+    "score_hm": 0.0,
+    "cum_write_s": 100.547
+   },
+   {
+    "n": 25,
+    "retention": 0.0,
+    "locality": 0.05,
+    "score_hm": 0.0,
+    "cum_write_s": 222.498
+   },
+   {
+    "n": 50,
+    "retention": 0.0,
+    "locality": 0.0,
+    "score_hm": 0.0,
+    "cum_write_s": 342.989
+   },
+   {
+    "n": 100,
+    "retention": 0.0,
+    "locality": 0.0,
+    "score_hm": 0.0,
+    "cum_write_s": 758.368
+   }
+  ]
+ },
+ "notes": {
+  "CAKE": "retention flat at ~1.0 through N=400 (each fact -> separate memory slot, zero weight change, no inter-edit interference). Locality degrades gently (1.0->0.55 at N=400) because a larger populated memory has more chances for a control prompt to exceed the fixed gate 0.45. 400 edits written in 1.8 s, 0 gradient steps.",
+  "ROME": "sequential single-layer edits catastrophically interfere: locality collapses 0.85->0.00 by N=50 (model destroyed). Retention reads 0.0 from N=1 due to a fresh-pass scoring artifact after keep_original_weight=False (documented earlier in project); the ROBUST, unambiguous signal is the locality collapse. 100 edits took 758 s.",
+  "in_context": "RAG re-supplies each fact per query, so it does not accumulate damage (retention ~0.94, locality 1.0) \u2014 but it is not persistent editing; every query pays the context cost and the model's weights/memory are unchanged.",
+  "base": "retention ~0 (model doesn't know the facts), locality 1.0 (nothing changed).",
+  "finetune": "NOT RUN in this pass \u2014 GPU was occupied by the user's WISE sweep; sequential fine-tune expected to show locality collapse like the single-edit case (NS 0.02)."
+ }
+}

@@ -1,0 +1,101 @@
+{
+ "note": "Canonical knowledge-editing references for CAKE, verified via OpenAlex. arXiv API was proxy-blocked; metadata from OpenAlex title search.",
+ "references": {
+  "ROME": {
+   "title": "Locating and Editing Factual Associations in GPT",
+   "year": 2022,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2202.05262",
+   "openalex_id": "W4281657280",
+   "cited_by": 175
+  },
+  "MEMIT": {
+   "title": "Mass-Editing Memory in a Transformer",
+   "year": 2022,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2210.07229",
+   "openalex_id": "W4306313145",
+   "cited_by": 54
+  },
+  "SERAC": {
+   "title": "Memory-Based Model Editing at Scale",
+   "year": 2022,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2206.06520",
+   "openalex_id": "W4282980384",
+   "cited_by": 31
+  },
+  "GRACE": {
+   "title": "Aging with GRACE: Lifelong Model Editing with Discrete Key-Value Adaptors",
+   "year": 2022,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2211.11031",
+   "openalex_id": "W4320561779",
+   "cited_by": 15
+  },
+  "WISE": {
+   "title": "WISE: Rethinking the Knowledge Memory for Lifelong Model Editing of Large Language Models",
+   "year": 2024,
+   "venue": null,
+   "doi": "10.52202/079017-1703",
+   "openalex_id": "W4415797485",
+   "cited_by": 5
+  },
+  "AlphaEdit": {
+   "title": "AlphaEdit: Null-Space Constrained Knowledge Editing for Language Models",
+   "year": 2024,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2410.02355",
+   "openalex_id": "W4403882889",
+   "cited_by": 2
+  },
+  "RippleEdits": {
+   "title": "Evaluating the Ripple Effects of Knowledge Editing in Language Models",
+   "year": 2024,
+   "venue": "Transactions of the Association for Computational Linguistics",
+   "doi": "10.1162/tacl_a_00644",
+   "openalex_id": "W4394743141",
+   "cited_by": 35
+  },
+  "ProductKey": {
+   "title": "Large Memory Layers with Product Keys",
+   "year": 2019,
+   "venue": "HAL (Le Centre pour la Communication Scientifique Directe)",
+   "doi": "10.48550/arxiv.1907.05242",
+   "openalex_id": "W2970401203",
+   "cited_by": 50
+  },
+  "kNN-LM": {
+   "title": "Generalization through Memorization: Nearest Neighbor Language Models",
+   "year": 2019,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.1911.00172",
+   "openalex_id": "W2988841832",
+   "cited_by": 56
+  },
+  "T-Patcher": {
+   "title": "Transformer-Patcher: One Mistake worth One Neuron",
+   "year": 2023,
+   "venue": "arXiv (Cornell University)",
+   "doi": "10.48550/arxiv.2301.09785",
+   "openalex_id": "W4318142410",
+   "cited_by": 10
+  },
+  "MELO": {
+   "title": "MELO: Enhancing Model Editing with Neuron-Indexed Dynamic LoRA",
+   "year": 2024,
+   "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+   "doi": "10.1609/aaai.v38i17.29916",
+   "openalex_id": "W4393152647",
+   "cited_by": 17
+  },
+  "MQuAKE": {
+   "title": "MQuAKE: Assessing Knowledge Editing in Language Models via Multi-Hop Questions",
+   "year": 2023,
+   "venue": null,
+   "doi": "10.18653/v1/2023.emnlp-main.971",
+   "openalex_id": "W4389519586",
+   "cited_by": 38
+  }
+ }
+}

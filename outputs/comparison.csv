@@ -1,0 +1,5 @@
+method,efficacy,locality,write_s,grad_steps,params_changed,notes
+base,0.0,1.0,0.0,0,0,unedited GPT-2
+in_context,1.0,1.0,0.0,0,0,document prepended to every query; context grows with corpus
+finetune,1.0,0.16666666666666666,6.472,60,124439808,AdamW 60 steps on the 5 facts
+cake,1.0,1.0,0.0792,0,0,frozen weights; firing threshold 0.9

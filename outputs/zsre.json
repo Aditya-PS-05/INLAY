@@ -1,0 +1,166 @@
+{
+ "benchmark": "zsRE single-edit",
+ "model": "gpt2-xl",
+ "n": 100,
+ "metric": "token-accuracy ES/PS/NS (EasyEdit native for ROME/MEMIT); score=harmonic mean",
+ "gpu": "NVIDIA L40S",
+ "base": {
+  "ES": 0.2058,
+  "PS": 0.2063,
+  "NS": 1.0,
+  "score_hm": 0.2801,
+  "write_s": 0.0,
+  "grad_steps": 0
+ },
+ "in_context": {
+  "ES": 0.9383,
+  "PS": 0.8472,
+  "NS": 0.88,
+  "score_hm": 0.8869,
+  "write_s": 0.0,
+  "grad_steps": 0
+ },
+ "finetune": {
+  "ES": 0.7923,
+  "PS": 0.7457,
+  "NS": 0.01,
+  "score_hm": 0.0292,
+  "write_s": 6.6124,
+  "grad_steps": 25
+ },
+ "ROME": {
+  "ES": 1.0,
+  "PS": 0.795,
+  "NS": 0.9564,
+  "score_hm": 0.9082,
+  "write_s": 3.7789,
+  "grad_steps": 20
+ },
+ "MEMIT": {
+  "ES": 0.2808,
+  "PS": 0.2436,
+  "NS": 0.9961,
+  "score_hm": 0.346,
+  "write_s": 4.3682,
+  "grad_steps": 100
+ },
+ "CAKE_v2_semkey": {
+  "ES": 0.5285,
+  "PS": 0.5218,
+  "NS": 1.0,
+  "score_hm": 0.6239,
+  "write_s": 0.2876,
+  "grad_steps": 0,
+  "selected_gate": 0.3,
+  "n_tune": 50,
+  "n_test": 50,
+  "tune_curve": {
+   "0.3": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2945
+   },
+   "0.35": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2854
+   },
+   "0.4": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2846
+   },
+   "0.45": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2879
+   },
+   "0.5": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2867
+   },
+   "0.55": {
+    "ES": 0.597,
+    "PS": 0.5787,
+    "NS": 1.0,
+    "score_hm": 0.6813,
+    "write_s": 0.2871
+   }
+  },
+  "superseded_by": "CAKE_v3_multitoken (multi-token value fix)"
+ },
+ "notes": {
+  "CAKE_v2": "efficacy capped ~0.53 by zsRE's free-form MULTI-TOKEN answers (value stores only the first answer-token direction). Addressing fix HOLDS: PS 0.52 ~= ES 0.53 (paraphrases generalize as well as originals), NS 1.00 (perfect locality). The limit is the VALUE representation, not the key.",
+  "ROME": "wins (0.908): near-perfect efficacy, strong on all axes, as published on zsRE.",
+  "MEMIT": "weak single-edit (0.346) \u2014 batch method; partial token credit on multi-token targets gives ES 0.28 (vs 0 on CounterFact's single-token answers).",
+  "finetune": "NS collapses to 0.01 \u2014 catastrophic forgetting, same as CounterFact.",
+  "in_context": "RAG strong (0.887).",
+  "CAKE_v3": "multi-token value fix: logit-space PLAYBACK of the full stored answer sequence (position-wise), replacing first-token-only value. Lifts zsRE ES/PS from 0.53/0.52 to 0.96/0.96 -> score 0.973, now BEST on zsRE (> ROME 0.908). Still zero-gradient; addressing unchanged."
+ },
+ "CAKE_v3_multitoken": {
+  "ES": 0.96,
+  "PS": 0.96,
+  "NS": 1.0,
+  "score_hm": 0.973,
+  "write_s": 0.3401,
+  "grad_steps": 0,
+  "selected_gate": 0.3,
+  "n_tune": 50,
+  "n_test": 50,
+  "tune_curve": {
+   "0.3": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3281
+   },
+   "0.35": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3149
+   },
+   "0.4": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3183
+   },
+   "0.45": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3147
+   },
+   "0.5": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3395
+   },
+   "0.55": {
+    "ES": 1.0,
+    "PS": 1.0,
+    "NS": 1.0,
+    "score_hm": 1.0,
+    "write_s": 0.3362
+   }
+  }
+ }
+}

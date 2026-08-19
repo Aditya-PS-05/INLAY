@@ -1,0 +1,67 @@
+{
+ "method": "cake",
+ "model": "EasyEdit/hugging_cache/gpt2-xl",
+ "n": 100,
+ "benchmark": "zsRE",
+ "metric": "token-accuracy ES/PS/NS",
+ "gpu": "NVIDIA L40S",
+ "selected_gate": 0.3,
+ "n_tune": 50,
+ "n_test": 50,
+ "tune_curve": {
+  "0.3": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3281
+  },
+  "0.35": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3149
+  },
+  "0.4": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3183
+  },
+  "0.45": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3147
+  },
+  "0.5": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3395
+  },
+  "0.55": {
+   "ES": 1.0,
+   "PS": 1.0,
+   "NS": 1.0,
+   "score_hm": 1.0,
+   "write_s": 0.3362
+  }
+ },
+ "test": {
+  "ES": 0.96,
+  "PS": 0.96,
+  "NS": 1.0,
+  "score_hm": 0.973,
+  "write_s": 0.3401
+ },
+ "ES": 0.96,
+ "PS": 0.96,
+ "NS": 1.0,
+ "score_hm": 0.973,
+ "grad_steps": 0
+}

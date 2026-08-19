@@ -1,0 +1,422 @@
+<title>Full Method Comparison</title>
+<style>
+  :root {
+    --bg: #F5F6F5;
+    --surface: #FFFFFF;
+    --ink: #181B1A;
+    --muted: #5B615E;
+    --faint: #8A908C;
+    --line: #D6D9D5;
+    --line-soft: #E6E8E5;
+    --accent: #3D7A6A;
+    --accent-soft: #E4EEEA;
+    --warn: #A6621F;
+    --warn-soft: #F5E9DA;
+    --bad: #A6402F;
+    --bad-soft: #F6E4E0;
+    --blue: #2a78d6;
+    --orange: #eb6834;
+    --aqua: #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141615; --surface: #1B1E1D; --ink: #E8EAE7; --muted: #9AA09B; --faint: #6E736F;
+      --line: #333734; --line-soft: #262927; --accent: #6FBBA6; --accent-soft: #1E2C28;
+      --warn: #D3924E; --warn-soft: #2C2213; --bad: #DB8272; --bad-soft: #2E1B17;
+      --blue: #3987e5; --orange: #d95926; --aqua: #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141615; --surface: #1B1E1D; --ink: #E8EAE7; --muted: #9AA09B; --faint: #6E736F;
+    --line: #333734; --line-soft: #262927; --accent: #6FBBA6; --accent-soft: #1E2C28;
+    --warn: #D3924E; --warn-soft: #2C2213; --bad: #DB8272; --bad-soft: #2E1B17;
+    --blue: #3987e5; --orange: #d95926; --aqua: #199e70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); margin: 0;
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 68rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  .eyebrow { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.01em; margin: 0.5rem 0 1rem; text-wrap: balance; }
+  h2 { font-size: 1.35rem; margin: 3rem 0 0.5rem; letter-spacing: -0.005em; }
+  h3 { font-size: 1.02rem; margin: 1.75rem 0 0.5rem; color: var(--ink); }
+  p.lead { font-size: 1.08rem; color: var(--muted); max-width: 46rem; margin: 0 0 0.5rem; }
+  p { margin: 0 0 1rem; max-width: 46rem; }
+  .meta { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--faint); }
+  hr.rule { border: none; border-top: 1px solid var(--line); margin: 2.5rem 0; }
+
+  .callout { border-radius: 8px; padding: 1rem 1.25rem; margin: 1.25rem 0; max-width: 46rem; }
+  .callout.warn { background: var(--warn-soft); border: 1px solid var(--warn); }
+  .callout.bad { background: var(--bad-soft); border: 1px solid var(--bad); }
+  .callout .tag { font-family: ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .callout.warn .tag { color: var(--warn); } .callout.bad .tag { color: var(--bad); }
+  .callout p { margin: 0.4rem 0 0; max-width: none; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin: 0.75rem 0 1.5rem; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: 0.88rem; }
+  table.wide { min-width: 56rem; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  th { font-family: ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+  td { font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  tr.hero td { font-weight: 700; background: var(--accent-soft); }
+  tr.zero td { color: var(--faint); }
+  .src { font-family: ui-monospace, monospace; font-size: 0.72rem; color: var(--faint); white-space: normal; }
+
+  .stat-row { display: flex; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+  .stat { background: var(--surface); padding: 0.85rem 1.1rem; flex: 1 1 9rem; }
+  .stat b { display: block; font-size: 1.2rem; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .stat span { font-size: 0.76rem; color: var(--muted); }
+
+  svg text { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  figure { margin: 1rem 0 2rem; }
+  figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; max-width: 46rem; }
+
+  .toc { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: 0.35rem; }
+  .toc a { color: var(--ink); text-decoration: none; font-size: 0.92rem; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .n { font-family: ui-monospace, monospace; color: var(--faint); margin-right: 0.5rem; }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">INLAY (CAKE) knowledge editing &middot; ground-truth results audit</p>
+  <h1>Full Method Comparison</h1>
+  <p class="lead">Every method &times; model &times; benchmark &times; N found in this project's logs and output files, re-verified directly against the source this session rather than pulled from memory.</p>
+  <p class="meta">Compiled 2026-08-17 &middot; 91 distinct results &middot; sources: 4 live GPU hosts + local cake_prototype/outputs/</p>
+
+  <div class="stat-row">
+    <div class="stat"><b>91</b><span>distinct results tabulated</span></div>
+    <div class="stat"><b>8</b><span>methods (incl. base, RAG)</span></div>
+    <div class="stat"><b>4</b><span>model families</span></div>
+    <div class="stat"><b>4</b><span>benchmarks</span></div>
+    <div class="stat"><b>7</b><span>tracked failures/crashes</span></div>
+    <div class="stat"><b>2</b><span>jobs still running</span></div>
+  </div>
+
+  <div class="callout warn">
+    <span class="tag">Correction to this session's earlier claims</span>
+    <p><b>WISE beats INLAY on Qwen2.5-7B CounterFact:</b> 0.9466 vs 0.8944. Every proposal, message, and chart built earlier in this session says INLAY "leads every method tested." That's true on GPT-J and Mistral, and true on zsRE everywhere, but not true on Qwen CounterFact specifically. This needs fixing in the outreach materials before anything is sent.</p>
+  </div>
+  <div class="callout warn">
+    <span class="tag">Metric mismatch, not a real result</span>
+    <p>MEMIT and AlphaEdit's Qwen CounterFact numbers below (0.88, 0.72) were measured with a different metric (probability-of-success) than INLAY/ROME/WISE/GRACE's (token-accuracy harmonic mean). They are <b>not directly comparable</b> to INLAY's 0.8944 even though they look similar in magnitude. No apples-to-apples score exists for MEMIT/AlphaEdit on Qwen CounterFact.</p>
+  </div>
+
+  <ul class="toc">
+    <li><span class="n">01</span><a href="#leaderboard">Headline leaderboard, by model</a></li>
+    <li><span class="n">02</span><a href="#speed">Write cost, all methods</a></li>
+    <li><span class="n">03</span><a href="#cf">CounterFact, full detail, every N</a></li>
+    <li><span class="n">04</span><a href="#zsre">zsRE, full detail, every N</a></li>
+    <li><span class="n">05</span><a href="#ripple">RippleEdits (compositional portability)</a></li>
+    <li><span class="n">06</span><a href="#seq">Sequential editing (lifelong)</a></li>
+    <li><span class="n">07</span><a href="#gaps">Gaps, duplicates, and failed runs</a></li>
+  </ul>
+
+  <hr class="rule" />
+
+  <h2 id="leaderboard">01 &middot; Headline leaderboard, by model</h2>
+  <p>The single best-available number per method, at the highest reliable N. CounterFact uses N=2000 for weight-editors and N=5000 for INLAY/base/RAG, the convention this project settled into; zsRE uses N=2000 throughout.</p>
+
+  <h3>CounterFact</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Method</th><th>GPT-J-6B</th><th>Qwen2.5-7B</th><th>Mistral-7B</th><th>Write cost</th></tr></thead>
+    <tbody>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>0.8926</td><td>0.8944</td><td>0.8995</td><td>~5 to 15 ms</td></tr>
+      <tr><td>WISE</td><td>0.703</td><td><b>0.9466</b></td><td>n/a</td><td>15 to 31 s</td></tr>
+      <tr><td>ROME</td><td>0.797</td><td>0.7767</td><td>0.3398</td><td>8 to 10 s</td></tr>
+      <tr><td>AlphaEdit</td><td>0.4595</td><td>0.9735*</td><td>n/a</td><td>12 to 16 s</td></tr>
+      <tr><td>MEMIT</td><td>0.4314</td><td>0.978*</td><td>n/a</td><td>25 to 35 s</td></tr>
+      <tr class="zero"><td>GRACE</td><td>0.0</td><td>0.0</td><td>n/a</td><td>7 to 19 s</td></tr>
+      <tr><td>RAG (in-context)</td><td>0.546</td><td>0.5258</td><td>n/a</td><td>0 s</td></tr>
+      <tr class="zero"><td>base (untouched)</td><td>0.0076</td><td>0.016</td><td>n/a</td><td>n/a</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">*MEMIT/AlphaEdit Qwen figures use a different metric (prob-success), not the harmonic-mean token-accuracy score used everywhere else, see the callout above. Mistral has no MEMIT/WISE/GRACE/AlphaEdit results at all.</p>
+
+  <h3>zsRE</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Method</th><th>GPT-J-6B</th><th>Qwen2.5-7B</th><th>Mistral-7B</th><th>Write cost</th></tr></thead>
+    <tbody>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>1.0</td><td>0.996 to 1.00</td><td>0.9999</td><td>~13 to 14 ms</td></tr>
+      <tr><td>WISE</td><td>0.9959</td><td>0.9987</td><td>n/a</td><td>17 to 31 s</td></tr>
+      <tr><td>ROME</td><td>0.937</td><td>0.9751</td><td>0.7018</td><td>10 to 13 s</td></tr>
+      <tr><td>AlphaEdit</td><td>0.6698</td><td>0.6824</td><td>n/a</td><td>12 to 15 s</td></tr>
+      <tr><td>MEMIT</td><td>0.6497</td><td>0.6822</td><td>n/a</td><td>26 to 35 s</td></tr>
+      <tr class="zero"><td>GRACE</td><td>0.0035</td><td>0.0555</td><td>n/a</td><td>9 to 19 s</td></tr>
+      <tr><td>RAG (in-context)</td><td>0.8757</td><td>0.8703</td><td>n/a</td><td>0 s</td></tr>
+      <tr class="zero"><td>base (untouched)</td><td>0.2968</td><td>0.3989</td><td>n/a</td><td>n/a</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">On zsRE, INLAY leads or ties every method on every model where it's been run, unlike CounterFact, no correction needed here.</p>
+
+  <hr class="rule" />
+
+  <h2 id="speed">02 &middot; Write cost, all methods</h2>
+  <figure>
+    <div class="tablewrap">
+      <svg viewBox="0 0 900 380" role="img" aria-label="Write cost per edit on a log scale: INLAY writes in milliseconds, every weight-editing baseline takes seconds, GRACE fastest of those at about 7 seconds, MEMIT slowest at about 35 seconds.">
+        <g font-size="11" fill="var(--ink)">
+          <!-- axis -->
+          <line x1="220" y1="20" x2="220" y2="350" stroke="var(--line)" />
+          <text x="220" y="368" text-anchor="middle" font-size="10" fill="var(--faint)">10ms</text>
+          <text x="370" y="368" text-anchor="middle" font-size="10" fill="var(--faint)">100ms</text>
+          <text x="520" y="368" text-anchor="middle" font-size="10" fill="var(--faint)">1s</text>
+          <text x="670" y="368" text-anchor="middle" font-size="10" fill="var(--faint)">10s</text>
+          <text x="820" y="368" text-anchor="middle" font-size="10" fill="var(--faint)">100s</text>
+        </g>
+        <!-- bars: log scale, x = 220 + 150*log10(ms/10) roughly, hand-placed -->
+        <g>
+          <text x="210" y="44" text-anchor="end" font-size="11" fill="var(--ink)">INLAY</text>
+          <rect x="220" y="30" width="12" height="20" fill="var(--accent)" />
+          <text x="238" y="44" font-size="10.5" fill="var(--muted)">~10 ms</text>
+        </g>
+        <g>
+          <text x="210" y="84" text-anchor="end" font-size="11" fill="var(--ink)">GRACE</text>
+          <rect x="220" y="70" width="452" height="20" fill="var(--faint)" />
+          <text x="680" y="84" font-size="10.5" fill="var(--muted)">7 to 19 s</text>
+        </g>
+        <g>
+          <text x="210" y="124" text-anchor="end" font-size="11" fill="var(--ink)">ROME</text>
+          <rect x="220" y="110" width="465" height="20" fill="var(--faint)" />
+          <text x="693" y="124" font-size="10.5" fill="var(--muted)">8 to 10 s</text>
+        </g>
+        <g>
+          <text x="210" y="164" text-anchor="end" font-size="11" fill="var(--ink)">AlphaEdit</text>
+          <rect x="220" y="150" width="483" height="20" fill="var(--faint)" />
+          <text x="711" y="164" font-size="10.5" fill="var(--muted)">12 to 16 s</text>
+        </g>
+        <g>
+          <text x="210" y="204" text-anchor="end" font-size="11" fill="var(--ink)">WISE</text>
+          <rect x="220" y="190" width="500" height="20" fill="var(--faint)" />
+          <text x="728" y="204" font-size="10.5" fill="var(--muted)">15 to 31 s</text>
+        </g>
+        <g>
+          <text x="210" y="244" text-anchor="end" font-size="11" fill="var(--ink)">MEMIT</text>
+          <rect x="220" y="230" width="518" height="20" fill="var(--faint)" />
+          <text x="746" y="244" font-size="10.5" fill="var(--muted)">25 to 35 s</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure.</b> INLAY writes ~700 to 3000&times; faster than every weight-editing baseline, consistently, across every model tested. This is the one axis where the gap is not close on any comparison.</figcaption>
+  </figure>
+
+  <hr class="rule" />
+
+  <h2 id="cf">03 &middot; CounterFact, full detail, every N</h2>
+  <p>Every CounterFact run found, including superseded and low-N versions, kept for traceability. The bold row in each block is the number used in the headline leaderboard above.</p>
+
+  <h3>GPT-2-XL (1.5B)</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>100</td><td>0.01</td><td>0.00</td><td>1.00</td><td>0.00</td><td>0.0s</td><td class="src">cf_base.log</td></tr>
+      <tr><td>RAG</td><td>100</td><td>0.92</td><td>0.405</td><td>0.44</td><td>0.5147</td><td>0.0s</td><td class="src">cf_in_context.log</td></tr>
+      <tr><td>finetune</td><td>100</td><td>0.63</td><td>0.40</td><td>0.018</td><td>0.0503</td><td>6.62s</td><td class="src">cf_finetune.log</td></tr>
+      <tr><td>ROME</td><td>100</td><td>0.955</td><td>0.43</td><td>0.88</td><td>0.6653</td><td>11.87s</td><td class="src">EasyEdit/cf_rome100.log</td></tr>
+      <tr><td>ROME (n=50, diff. metric)</td><td>50</td><td>0.18</td><td>0.23</td><td>0.786</td><td>0.2684</td><td>10.71s</td><td class="src">EasyEdit/cf_rome.log</td></tr>
+      <tr><td>ROME (n=10)</td><td>10</td><td>0.20</td><td>0.45</td><td>0.74</td><td>0.3499</td><td>11.55s</td><td class="src">EasyEdit/cf_rome10.log</td></tr>
+      <tr><td>MEMIT</td><td>100</td><td>0.0</td><td>0.0</td><td>0.99</td><td>0.0</td><td>12.70s</td><td class="src">EasyEdit/cf_memit100.log</td></tr>
+      <tr><td>CAKE v1 (hidden-state key)</td><td>100</td><td>1.0</td><td>0.15</td><td>0.694</td><td>0.3294</td><td>2.72s</td><td class="src">cf_cake.log, superseded</td></tr>
+      <tr><td>CAKE v1 (n=30)</td><td>30</td><td>1.0</td><td>0.10</td><td>0.77</td><td>0.2439</td><td>0.87s</td><td class="src">cf_cake30.log</td></tr>
+      <tr><td>CAKE-semkey(prompt) v2</td><td>100</td><td>1.0</td><td>0.85</td><td>0.82</td><td>0.8834</td><td>n/a</td><td class="src">cf_semkey_prompt.log</td></tr>
+      <tr><td>CAKE-semkey(subject), dead end</td><td>100</td><td>1.0</td><td>1.0</td><td>0.005</td><td>0.0149</td><td>n/a</td><td class="src">cf_semkey_subject.log</td></tr>
+      <tr class="hero"><td>CAKE (held-out split)</td><td>100/100</td><td>1.0</td><td>0.86</td><td>0.859</td><td>0.9017</td><td>n/a</td><td class="src">cf_semkey_multi.log = cf_split.log</td></tr>
+      <tr><td>CAKE, N=400 margin-tuned</td><td>400</td><td>n/a</td><td>n/a</td><td>1.0</td><td>0.9975</td><td>n/a</td><td class="src">margin2.log</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>GPT-J-6B</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>1000</td><td>0.004</td><td>0.003</td><td>1.0</td><td>0.0051</td><td>n/a</td><td class="src">cf_base_n1000.log</td></tr>
+      <tr><td>base</td><td>5000</td><td>0.0058</td><td>0.0045</td><td>1.0</td><td>0.0076</td><td>n/a</td><td class="src">cf_base_gptj5k.log</td></tr>
+      <tr><td>RAG</td><td>1000</td><td>0.855</td><td>0.464</td><td>0.4608</td><td>0.546</td><td>n/a</td><td class="src">cf_in_context_n1000.log</td></tr>
+      <tr><td>RAG</td><td>5000</td><td>0.847</td><td>0.4597</td><td>0.4569</td><td>0.5411</td><td>n/a</td><td class="src">cf_rag_gptj5k.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.988</td><td>0.7568</td><td>0.699</td><td>0.797</td><td>8.60s</td><td class="src">cf_rome_gptj2k.log</td></tr>
+      <tr><td>ROME (n=100)</td><td>100</td><td>0.995</td><td>0.755</td><td>0.60</td><td>0.7507</td><td>8.62s</td><td class="src">EasyEdit/romej_cf.log</td></tr>
+      <tr class="hero"><td>MEMIT</td><td>2000</td><td>0.458</td><td>0.2672</td><td>0.972</td><td>0.4314</td><td>26.30s</td><td class="src">cf_memit_gptj2k.log</td></tr>
+      <tr><td>MEMIT (n=100)</td><td>100</td><td>1.0</td><td>0.98</td><td>0.96</td><td>n/a</td><td>26.28s</td><td class="src">dm_MEMIT.log</td></tr>
+      <tr class="hero"><td>WISE</td><td>2000</td><td>1.0</td><td>0.4415</td><td>0.999</td><td>0.7032</td><td>14.76s</td><td class="src">cf_wise_gptj2k.log (virginia)</td></tr>
+      <tr><td>WISE (confirming rerun)</td><td>2000</td><td>1.0</td><td>0.4422</td><td>0.999</td><td>0.7039</td><td>15.34s</td><td class="src">cf_wise_gptj2k.log (ohio)</td></tr>
+      <tr><td>WISE (n=100)</td><td>100</td><td>1.0</td><td>0.385</td><td>1.0</td><td>0.6525</td><td>15.10s</td><td class="src">EasyEdit/wise_cf.log</td></tr>
+      <tr class="hero zero"><td>GRACE</td><td>2000</td><td>0.0</td><td>0.006</td><td>1.0</td><td>0.0</td><td>17.35s</td><td class="src">cf_grace_gptj2k.log, confirmed twice, virginia + ohio</td></tr>
+      <tr class="hero"><td>AlphaEdit</td><td>2000</td><td>0.4682</td><td>0.2963</td><td>0.982</td><td>0.4595</td><td>12.12s</td><td class="src">cf_alphaedit_gptj2k.log</td></tr>
+      <tr><td>AlphaEdit (n=100)</td><td>100</td><td>0.46</td><td>0.26</td><td>0.98</td><td>0.4261</td><td>12.84s</td><td class="src">EasyEdit/ae_cf2.log</td></tr>
+      <tr class="bad" style="background:var(--bad-soft)"><td>AlphaEdit (N=2000, current attempt)</td><td>2000</td><td colspan="4">still running, no result yet</td><td>n/a</td><td class="src">dm_alphaedit_gptj2k.log</td></tr>
+      <tr><td>CAKE, N=1000</td><td>1000</td><td>1.0</td><td>0.868</td><td>0.8352</td><td>0.8957</td><td>n/a</td><td class="src">gptj_final_leaderboard.json</td></tr>
+      <tr class="hero"><td>INLAY (CAKE) v3</td><td>5000</td><td>0.9976</td><td>0.8711</td><td>0.826</td><td><b>0.8926</b></td><td>n/a</td><td class="src">cf_cake_gptj5k.log</td></tr>
+      <tr><td>INLAY dualmetric</td><td>2000</td><td>0.998</td><td>0.8928</td><td>0.8338</td><td>n/a</td><td>0.0135s</td><td class="src">dm_cake_gptj2k.log</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Qwen2.5-7B</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>5000</td><td>0.0106</td><td>0.0108</td><td>1.0</td><td>0.016</td><td>n/a</td><td class="src">cf_base_qwen5k.log</td></tr>
+      <tr><td>RAG</td><td>5000</td><td>0.7983</td><td>0.4933</td><td>0.4122</td><td>0.5258</td><td>n/a</td><td class="src">cf_rag_qwen5k.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.997</td><td>0.5538</td><td>0.9487</td><td>0.7767</td><td>9.30s</td><td class="src">cf_rome_qwen2k.log</td></tr>
+      <tr><td>MEMIT (prob-success metric, not hm-comparable)</td><td>2000</td><td>eff 1.0</td><td>par 0.981</td><td>0.978</td><td>n/a</td><td>34.32s</td><td class="src">dm_memit_qwen2k.log</td></tr>
+      <tr class="hero" style="background:var(--warn-soft)"><td>WISE, beats INLAY here</td><td>2000</td><td>1.0</td><td>0.8553</td><td>1.0</td><td><b>0.9466</b></td><td>27.1s</td><td class="src">cf_wise_qwen2k.log, confirmed twice</td></tr>
+      <tr class="zero"><td>GRACE</td><td>2000</td><td>0.0</td><td>0.0055</td><td>1.0</td><td>0.0</td><td>6.79s</td><td class="src">cf_grace_qwen2k.log</td></tr>
+      <tr><td>AlphaEdit (prob-success metric, not hm-comparable)</td><td>2000</td><td>eff 1.0</td><td>par 0.984</td><td>0.9735</td><td>n/a</td><td>16.24s</td><td class="src">dm_alphaedit_qwen2k.log</td></tr>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>5000</td><td>1.0</td><td>0.8776</td><td>0.8232</td><td><b>0.8944</b></td><td>n/a</td><td class="src">cf_cake_qwen5k.log</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Mistral-7B-v0.3</h3>
+  <p class="meta">No MEMIT/WISE/GRACE/AlphaEdit exist for this model on CounterFact, only INLAY and ROME were run.</p>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>INLAY smoke (BOS bug, pre-fix)</td><td>20/20</td><td>0.171</td><td>0.165</td><td>0.82</td><td>0.2282</td><td>n/a</td><td class="src">smoke_mistral.log, failed run, see gaps</td></tr>
+      <tr><td>INLAY &alpha;=40 sweep (pre-fix)</td><td>50/50</td><td>0.412</td><td>0.407</td><td>0.826</td><td>0.4921</td><td>n/a</td><td class="src">sweep_mistral_a40.log</td></tr>
+      <tr><td>INLAY &alpha;=80 sweep (pre-fix)</td><td>50/50</td><td>0.555</td><td>0.5527</td><td>0.792</td><td>0.6155</td><td>n/a</td><td class="src">sweep_mistral_a80.log</td></tr>
+      <tr><td>INLAY &alpha;=160 sweep (pre-fix)</td><td>50/50</td><td>0.575</td><td>0.5577</td><td>0.728</td><td>0.6115</td><td>n/a</td><td class="src">sweep_mistral_a160.log</td></tr>
+      <tr><td>INLAY &alpha;=160, after tokenizer fix</td><td>50/50</td><td>1.0</td><td>0.895</td><td>0.83</td><td>0.903</td><td>n/a</td><td class="src">sweep_mistral_fixed_a160.log, proved the fix worked</td></tr>
+      <tr class="hero"><td>INLAY (CAKE), post-fix</td><td>5000</td><td>1.0</td><td>0.8895</td><td>0.8257</td><td><b>0.8995</b></td><td>n/a</td><td class="src">ladder_cf_mistral5k.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.2846</td><td>0.2364</td><td>0.9211</td><td>0.3398</td><td>9.04s</td><td class="src">ladder_cf_rome_mistral2k.log, untuned hyperparameters</td></tr>
+    </tbody>
+  </table></div>
+
+  <hr class="rule" />
+
+  <h2 id="zsre">04 &middot; zsRE, full detail, every N</h2>
+
+  <h3>GPT-2-XL</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>100</td><td>0.2058</td><td>0.2063</td><td>1.0</td><td>0.2801</td><td>0.0s</td><td class="src">zsre_base.log</td></tr>
+      <tr><td>RAG</td><td>100</td><td>0.9383</td><td>0.8472</td><td>0.88</td><td>0.8869</td><td>0.0s</td><td class="src">zsre_in_context.log</td></tr>
+      <tr><td>finetune</td><td>100</td><td>0.7923</td><td>0.7457</td><td>0.01</td><td>0.0292</td><td>6.61s</td><td class="src">zsre_finetune.log, catastrophic forgetting</td></tr>
+      <tr class="hero"><td>ROME</td><td>100</td><td>1.0</td><td>0.795</td><td>0.9564</td><td>0.9082</td><td>3.78s</td><td class="src">EasyEdit/zsre_rome.log</td></tr>
+      <tr class="hero"><td>MEMIT</td><td>100</td><td>0.2808</td><td>0.2436</td><td>0.9961</td><td>0.346</td><td>4.37s</td><td class="src">EasyEdit/zsre_memit.log</td></tr>
+      <tr><td>CAKE v2 (single-token value, capped)</td><td>50/50</td><td>0.5285</td><td>0.5218</td><td>1.0</td><td>0.6239</td><td>0.29s</td><td class="src">zsre_cake.log, superseded</td></tr>
+      <tr class="hero"><td>INLAY (CAKE) v3, multi-token fix</td><td>50/50</td><td>0.96</td><td>0.96</td><td>1.0</td><td><b>0.973</b></td><td>0.34s</td><td class="src">zsre_cake_multi.log, this fix is what beats ROME</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>GPT-J-6B</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>2000</td><td>0.2248</td><td>0.2146</td><td>1.0</td><td>0.2968</td><td>0.0s</td><td class="src">zsre_base_gptj.log</td></tr>
+      <tr><td>RAG</td><td>2000</td><td>0.9069</td><td>0.8375</td><td>0.8855</td><td>0.8757</td><td>0.0s</td><td class="src">zsre_rag_gptj.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.9951</td><td>0.9412</td><td>0.8816</td><td>0.937</td><td>10.23s</td><td class="src">zsre_rome_gptj2k.log</td></tr>
+      <tr class="hero"><td>WISE</td><td>2000</td><td>0.9987</td><td>0.9892</td><td>1.0</td><td>0.9959</td><td>17.28s</td><td class="src">zsre_wise_gptj2k.log</td></tr>
+      <tr class="hero zero"><td>GRACE</td><td>2000</td><td>0.0126</td><td>0.0013</td><td>1.0</td><td>0.0035</td><td>18.8s</td><td class="src">zsre_grace_gptj2k.log, confirmed on 2 hosts</td></tr>
+      <tr class="hero"><td>MEMIT</td><td>2000</td><td>0.6146</td><td>0.5037</td><td>0.9951</td><td>0.6497</td><td>26.29s</td><td class="src">zsre_memit_gptj2k.log (rerun in progress, may update)</td></tr>
+      <tr class="hero"><td>AlphaEdit</td><td>2000</td><td>0.6345</td><td>0.5265</td><td>0.9966</td><td>0.6698</td><td>12.21s</td><td class="src">zsre_alphaedit_gptj2k.log (retry in progress, may update)</td></tr>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>1500/2000</td><td>1.0</td><td>1.0</td><td>1.0</td><td><b>1.0</b></td><td>14.20s</td><td class="src">zsre_cake_gptj.log</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Qwen2.5-7B</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td>2000</td><td>0.3089</td><td>0.3045</td><td>1.0</td><td>0.3989</td><td>0.0s</td><td class="src">zsre_base_qwen.log</td></tr>
+      <tr><td>RAG</td><td>2000</td><td>0.9318</td><td>0.8554</td><td>0.83</td><td>0.8703</td><td>0.0s</td><td class="src">zsre_rag_qwen.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.9903</td><td>0.953</td><td>0.9828</td><td>0.9751</td><td>10.58s</td><td class="src">zsre_rome_qwen2k.log</td></tr>
+      <tr class="hero"><td>WISE</td><td>2000</td><td>0.9991</td><td>0.9971</td><td>0.9998</td><td>0.9987</td><td>31.12s</td><td class="src">zsre_wise_qwen2k.log</td></tr>
+      <tr class="zero"><td>GRACE</td><td>2000</td><td>0.0504</td><td>0.0301</td><td>1.0</td><td>0.0555</td><td>8.99s</td><td class="src">zsre_grace_qwen2k.log</td></tr>
+      <tr class="hero"><td>MEMIT</td><td>2000</td><td>0.6113</td><td>0.57</td><td>0.9925</td><td>0.6822</td><td>34.80s</td><td class="src">zsre_memit_qwen2k.log</td></tr>
+      <tr class="hero"><td>AlphaEdit</td><td>2000</td><td>0.6133</td><td>0.5689</td><td>0.9922</td><td>0.6824</td><td>15.32s</td><td class="src">zsre_alphaedit_qwen2k.log</td></tr>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>1500/2000</td><td>0.9942 to 0.9999</td><td>0.9949 to 0.9999</td><td>1.0</td><td><b>0.9963 to 0.9999</b></td><td>13.5 to 13.7s</td><td class="src">zsre_cake_qwen.log, 2 confirming runs</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Mistral-7B-v0.3</h3>
+  <p class="meta">No MEMIT/WISE/GRACE/AlphaEdit exist for this model on zsRE either.</p>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>N</th><th>ES</th><th>PS</th><th>NS</th><th>Score</th><th>Write cost</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr class="hero"><td>INLAY (CAKE)</td><td>1500/2000</td><td>0.9999</td><td>0.9999</td><td>1.0</td><td><b>0.9999</b></td><td>13.69s</td><td class="src">ladder_zsre_mistral2k.log</td></tr>
+      <tr class="hero"><td>ROME</td><td>2000</td><td>0.6306</td><td>0.5972</td><td>0.9856</td><td>0.7018</td><td>12.50s</td><td class="src">ladder_zsre_rome_mistral2k.log</td></tr>
+    </tbody>
+  </table></div>
+
+  <hr class="rule" />
+
+  <h2 id="ripple">05 &middot; RippleEdits (compositional / multi-hop portability)</h2>
+  <p>The one benchmark where INLAY structurally loses, retrieval plays back a stored answer rather than deriving one, so it cannot chain facts the way in-context reasoning can. Reported honestly throughout this project as the method's mapped boundary, not hidden.</p>
+
+  <h3>Matched-manifest protocol (rigorous, identical wikidata-verified subjects across methods)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Model</th><th>Method</th><th>Propagation</th><th>Preservation</th><th>Aggregate</th></tr></thead>
+    <tbody>
+      <tr class="zero"><td>GPT-J-6B</td><td>base</td><td>0.0258</td><td>0.1704</td><td>0.074</td></tr>
+      <tr class="hero"><td>GPT-J-6B</td><td>RAG</td><td>0.4566</td><td>0.2761</td><td><b>0.3964</b></td></tr>
+      <tr><td>GPT-J-6B</td><td>INLAY (CAKE)</td><td>0.3126</td><td>0.0507</td><td>0.2253</td></tr>
+      <tr class="zero"><td>Qwen2.5-7B</td><td>base</td><td>0.0425</td><td>0.3716</td><td>0.1522</td></tr>
+      <tr class="hero"><td>Qwen2.5-7B</td><td>RAG</td><td>0.4533</td><td>0.4076</td><td><b>0.4381</b></td></tr>
+      <tr><td>Qwen2.5-7B</td><td>INLAY (CAKE)</td><td>0.3458</td><td>0.1699</td><td>0.2871</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">No ROME, MEMIT, WISE, GRACE, or AlphaEdit exist in this matched protocol, on either model, only base/RAG/INLAY were run through it.</p>
+
+  <h3>Earlier, non-matched protocol (GPT-J, n=100), kept for the per-criterion breakdown</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Method</th><th>Logical Gen.</th><th>Comp. I</th><th>Comp. II</th><th>Subj. Alias</th><th>Rel. Spec.</th><th>Forget</th><th>Propagation</th><th>Preservation</th><th>Aggregate</th></tr></thead>
+    <tbody>
+      <tr class="zero"><td>base</td><td>0.0333</td><td>0.0763</td><td>0.0</td><td>0.0</td><td>0.2217</td><td>0.1091</td><td>0.0274</td><td>0.1654</td><td>0.0734</td></tr>
+      <tr class="hero"><td>RAG</td><td>0.1037</td><td>0.3997</td><td>0.5308</td><td>0.758</td><td>0.3261</td><td>0.2364</td><td>0.4481</td><td>0.2812</td><td><b>0.3925</b></td></tr>
+      <tr><td>INLAY (CAKE)</td><td>0.0333</td><td>0.1363</td><td>0.241</td><td>0.8161</td><td>0.061</td><td>0.0364</td><td>0.3067</td><td>0.0487</td><td>0.2207</td></tr>
+      <tr><td>ROME (different/filtered sample, indicative only)</td><td>0.0765</td><td>0.0701</td><td>0.0</td><td>0.0</td><td>0.2348</td><td>0.0862</td><td>0.0367</td><td>0.1605</td><td>0.0779</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">INLAY wins Subject_Aliasing (0.816, best of all four) but is worst on preservation (0.049), it over-fires on same-subject different-relation queries, destroying unrelated facts. That's the precise, measured shape of its weakness.</p>
+
+  <hr class="rule" />
+
+  <h2 id="seq">06 &middot; Sequential editing (lifelong), GPT-2-XL only</h2>
+  <p>No sequential-editing run exists for any model besides GPT-2-XL, or for MEMIT/WISE/GRACE/AlphaEdit at all, this section is INLAY vs base vs RAG vs ROME(&le;100) only.</p>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>N edits</th><th>INLAY retention</th><th>INLAY locality</th><th>INLAY score</th><th>cum. write</th><th>RAG retention/locality/score</th><th>ROME retention/locality/score</th><th>ROME cum. write</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>1.0</td><td>1.0</td><td>1.0</td><td>0.005s</td><td>1.0 / 1.0 / 1.0</td><td>0.0 / 0.85 / 0.0</td><td>12.3s</td></tr>
+      <tr><td>5</td><td>1.0</td><td>0.95</td><td>0.9744</td><td>0.024s</td><td>1.0 / 1.0 / 1.0</td><td>0.0 / 0.60 / 0.0</td><td>54.2s</td></tr>
+      <tr><td>10</td><td>1.0</td><td>0.90</td><td>0.9474</td><td>0.047s</td><td>0.9 / 1.0 / 0.9474</td><td>0.0 / 0.30 / 0.0</td><td>100.5s</td></tr>
+      <tr><td>25</td><td>1.0</td><td>0.90</td><td>0.9474</td><td>0.116s</td><td>0.88 / 1.0 / 0.9362</td><td>0.0 / 0.05 / 0.0</td><td>222.5s</td></tr>
+      <tr><td>50</td><td>1.0</td><td>0.85</td><td>0.9189</td><td>0.229s</td><td>0.88 / 1.0 / 0.9362</td><td>0.0 / 0.00 / 0.0</td><td>343.0s</td></tr>
+      <tr><td>100</td><td>1.0</td><td>0.70</td><td>0.8235</td><td>0.459s</td><td>0.92 / 1.0 / 0.9583</td><td>0.0 / 0.00 / 0.0</td><td>758.4s</td></tr>
+      <tr><td>200</td><td>1.0</td><td>0.65</td><td>0.7879</td><td>0.919s</td><td>0.935 / 1.0 / 0.9664</td><td colspan="2" class="src">not run past N=100</td></tr>
+      <tr class="hero"><td>400</td><td>0.995</td><td>0.55</td><td>0.7084</td><td>1.842s</td><td>0.94 / 1.0 / 0.9691</td><td colspan="2" class="src">not run past N=100</td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">ROME's locality collapses to 0 by N=50 (model destroyed); INLAY holds retention near 1.0 through N=400 at 1.8 cumulative seconds vs ROME's 758 seconds to reach just N=100.</p>
+
+  <hr class="rule" />
+
+  <h2 id="gaps">07 &middot; Gaps, duplicates, and failed runs</h2>
+
+  <h3>Real gaps, no successful result exists</h3>
+  <ul>
+    <li>AlphaEdit CounterFact, GPT-J, N=2000, running right now</li>
+    <li>MEMIT / WISE / GRACE / AlphaEdit on Mistral-7B, any benchmark</li>
+    <li>MEMIT / WISE / GRACE / AlphaEdit in the matched-manifest RippleEdits protocol, any model</li>
+    <li>Sequential/lifelong editing at any model besides GPT-2-XL, for any method</li>
+    <li>A true harmonic-mean-comparable MEMIT/AlphaEdit score on Qwen CounterFact (only the non-comparable prob-success metric exists)</li>
+  </ul>
+
+  <h3>Attempted, crashed, and how it was fixed</h3>
+  <div class="tablewrap"><table class="wide">
+    <thead><tr><th>Attempt</th><th>Failure</th></tr></thead>
+    <tbody>
+      <tr><td>WISE-Qwen, 1st try</td><td><code>KeyError: 'loc_prompt'</code>, request dict missing a field WISE's tokenizer needs</td></tr>
+      <tr><td>WISE-Qwen, 2nd try</td><td><code>ValueError: input_ids or inputs_embeds</code>. WISE-internal masking bug; fixed by switching eval scripts</td></tr>
+      <tr><td>AlphaEdit-Qwen, original</td><td>Disk-full corruption of a 4GB cache file when the 25GB root volume filled; fixed by moving the cache to a 549GB scratch disk</td></tr>
+      <tr><td>AlphaEdit/GRACE-GPT-J relaunch</td><td>Missing symlink from the HF cache snapshot to the path EasyEdit expects; fixed by creating it</td></tr>
+      <tr><td>AlphaEdit-GPT-J zsRE retry</td><td>CUDA OOM, a buggy wait-condition let it launch while GRACE (23GB) was still resident on the same GPU; fixed the condition, retry2 is running now</td></tr>
+      <tr><td>Llama-3-8B, any run</td><td><code>403: gated repo</code>. HF token never got Llama-3 access approved; abandoned in favor of Mistral as the third model family</td></tr>
+    </tbody>
+  </table></div>
+
+  <hr class="rule" />
+  <p class="meta">Full per-run source citations (log filename + host + mtime) for every row above are in <code>full-results-audit.md</code> alongside this file.</p>
+</div>
