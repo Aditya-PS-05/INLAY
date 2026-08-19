@@ -26,8 +26,15 @@ based scoring before any full run was trusted.
 
 | method | edit_ok | accuracy |
 |---|---|---|
-| ROME | 147/147 | **83.67%** |
-| CAKE (routed pipeline, same test set) | -- | 100.0% |
+| ROME | 147/147 | 83.67% |
+| MEMIT | 147/147 | 83.67% (identical to ROME) |
+| CAKE (routed pipeline, same test set) | -- | **100.0%** |
 
-More methods (MEMIT, AlphaEdit, WISE, GRACE) in progress; each appended here
-as results land.
+ROME and MEMIT landing at the identical 83.67% is plausible, not suspicious:
+both are well-established single-edit-scale weight editors and CounterFact
+structured is a comparatively easy single-fact task where both converge to
+similar quality; MEMIT's real advantage (per this project's own INLAY
+sequential-editing findings) shows up at scale/under repeated edits, not
+single-edit accuracy.
+
+AlphaEdit, WISE, GRACE in progress; each appended here as results land.
