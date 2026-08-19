@@ -68,8 +68,21 @@ class AkewRouter:
         if verifier_score < self.reject_threshold:
             return RouteDecision("REJECT", top_card.edit_id, retrieval_score, verifier_score, "below_reject_threshold")
 
-        if verifier_score >= self.direct_threshold and not _looks_multihop(query_text):
-            return RouteDecision("DIRECT", top_card.edit_id, retrieval_score, verifier_score, "high_confidence_atomic")
+        # FIX (found by the full-pipeline test, akew_fullpipeline_results.md):
+        # DIRECT's whole rationale is "a clean literal answer exists to recite
+        # fast" -- true in structured mode (the card carries the literal
+        # target), but NOT in unstructured/extracted mode, where "DIRECT"
+        # degrades to reciting a raw evidence sentence (answer_hard_playback's
+        # non-structured fallback), which Section 5's own pilots already
+        # showed underperforms genuine contextual generation. The original
+        # threshold-only logic was blind to input_mode and chose DIRECT for
+        # ALL 147/147 unstructured CounterFact queries, when the full-
+        # pipeline test showed forcing REASON instead scored higher (87.07%
+        # vs 85.71%). DIRECT is now gated on structured mode specifically.
+        if (verifier_score >= self.direct_threshold and not _looks_multihop(query_text)
+                and top_card.input_mode == "structured"):
+            return RouteDecision("DIRECT", top_card.edit_id, retrieval_score, verifier_score, "high_confidence_atomic_structured")
 
         return RouteDecision("REASON", top_card.edit_id, retrieval_score, verifier_score,
-                              "relevant_but_not_direct_confidence" if verifier_score < self.direct_threshold else "multihop_cue")
+                              "relevant_but_not_direct_confidence" if verifier_score < self.direct_threshold
+                              else ("multihop_cue" if _looks_multihop(query_text) else "non_structured_mode"))
