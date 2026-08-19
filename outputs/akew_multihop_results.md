@@ -132,6 +132,26 @@ passing through a "founder of a religion" hop -- confirming this is a
 specific, repeatable model confusion about that entity, not noise that
 would wash out with a larger sample.
 
-Not yet retested at the brief's target model scale (GPT-J-6B / Qwen2.5-7B);
-that remains the one natural next step before this number is quotable at
-that scale.
+## 7B-scale confirmation (Qwen2.5-7B-Instruct, n=150)
+
+| strategy | 1.5B (n=354, full pool) | 7B (n=150) |
+|---|---|---|
+| iterative multihop (with fallback) | 53.95% | **42.0%** |
+| naive single-shot | 16.1% | 20.67% |
+
+The margin holds at the larger model (+21.33 points, versus +37.85 at
+1.5B/full-pool) -- decomposition still clearly beats naive single-shot, not
+model-scale-dependent. The absolute iterative-multihop rate is lower at 7B
+than 1.5B's full-pool number; this is a different (smaller, n=150) sample,
+not a same-sample model comparison, so it should not be read as "the bigger
+model does worse at multihop" -- that comparison would need the same sample
+run through both models, not yet done.
+
+The identical failure pair recurs a THIRD time, now across two different
+model scales and two different sample sizes: cases 1475 and 1917 again both
+land on "Gharbia Governorate" against gold "Epworth" via the same "founder
+of a religion" hop. Three independent runs (n=80 pilot, n=354 full pool at
+1.5B, n=150 at 7B) reproducing the exact same specific wrong answer is
+strong evidence this is a genuine, model-scale-independent confusion about
+that entity (likely a retrieval or evidence-text issue upstream of either
+model's reasoning), worth a targeted look before scaling this further.
