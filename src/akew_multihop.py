@@ -70,18 +70,44 @@ def answer_multihop_group(rec, index, verifier, model, tok, device, max_hops=3,
             break
         candidates = index.query(sub_q, topk=3)
         if not candidates:
-            steps.append(HopStep(i, sub_q, None, None, None, None, list(accumulated_evidence)))
-            break
+            # same fallback semantics as the low-verifier-score branch below:
+            # an empty index result is not a broken chain, answer from base
+            # knowledge and continue.
+            prior_ctx = "\n".join(f"- {e}" for e in accumulated_evidence)
+            user_content = (f"Known facts:\n{prior_ctx}\n\nQuestion: {sub_q}\n"
+                            f"Answer from your own knowledge and the facts above, in a few words.") if prior_ctx \
+                else f"Question: {sub_q}\nAnswer in a few words."
+            ans = _chat_generate(model, tok, user_content, device, max_new_tokens=15)
+            steps.append(HopStep(i, sub_q, None, None, None, ans, list(accumulated_evidence)))
+            accumulated_evidence.append(f"{sub_q} -> {ans}")
+            continue
         top_card, retrieval_score = candidates[0]
         cand_text = top_card.canonical_fact_text or top_card.raw_evidence_text or ""
         raw_score = verifier.predict([[sub_q, cand_text]], convert_to_numpy=True, show_progress_bar=False)[0]
         v_score = float(1 / (1 + np.exp(-raw_score)))
 
         if v_score < verifier_threshold:
-            # no-progress detection: this hop found nothing usable -- stop
-            # here rather than hallucinating forward with no support.
-            steps.append(HopStep(i, sub_q, top_card.edit_id, retrieval_score, v_score, None, list(accumulated_evidence)))
-            break
+            # FALLBACK FIX (see outputs/akew_multihop_results.md): a low
+            # verifier score here usually does NOT mean the chain is broken --
+            # it means this hop's fact was never EDITED, so it isn't in the
+            # card index at all (most MQuAKE-CF chains mix one edited fact
+            # with ordinary unedited world facts: 277/354 groups have exactly
+            # 1 edit across a 2-3 hop chain). The correct behavior is the
+            # router's REJECT semantics applied per-hop: answer this hop from
+            # the base model's own parametric knowledge (plus prior hops'
+            # established facts as context), and KEEP GOING -- not terminate
+            # the whole chain answerless, which is what collapsed the first
+            # pilot to 5% (vs 22.5% for naive single-shot).
+            prior_ctx = "\n".join(f"- {e}" for e in accumulated_evidence)
+            if prior_ctx:
+                user_content = (f"Known facts:\n{prior_ctx}\n\nQuestion: {sub_q}\n"
+                                f"Answer from your own knowledge and the facts above, in a few words.")
+            else:
+                user_content = f"Question: {sub_q}\nAnswer in a few words."
+            ans = _chat_generate(model, tok, user_content, device, max_new_tokens=15)
+            steps.append(HopStep(i, sub_q, None, retrieval_score, v_score, ans, list(accumulated_evidence)))
+            accumulated_evidence.append(f"{sub_q} -> {ans}")
+            continue
 
         # answer this hop using contextual generation over the retrieved card
         # PLUS whatever prior hops already established (accumulated_evidence),

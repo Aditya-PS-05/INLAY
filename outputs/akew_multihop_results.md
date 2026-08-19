@@ -1,4 +1,12 @@
-# AKEW iterative multi-hop pilot — 2026-08-19
+# AKEW iterative multi-hop pilot — 2026-08-19 (updated: fallback fix applied)
+
+**Update: the fallback fix described below was implemented and retested the
+same day. Result: iterative multihop jumped from 5.0% to 47.5% -- now more
+than 2x the naive single-shot baseline (22.5%), reversing the finding
+entirely.** The original 5% run and its root-cause diagnosis are preserved
+below unedited, since the diagnosis is what led directly to the fix and the
+corrected result. New section at the bottom has the retest.
+
 
 Oracle-decomposition iterative loop (`akew_multihop.py`, brief section 5:
 identify next sub-question -> retrieve+verify -> answer -> append -> stop
@@ -65,3 +73,45 @@ This pilot used oracle sub-question decomposition (MQuAKE-CF's own
 `akew_multihop.py`'s docstring for why that's an honest, deliberate scoping
 choice, isolating the retrieve-verify-answer composition question from the
 separate, harder decomposition problem MeLLo's actual method addresses.
+
+## Retest after the fallback fix (same day)
+
+Implemented exactly the fix identified above: when a hop's verifier score is
+below threshold (or nothing is retrieved at all), the loop now answers that
+hop from the base model's own knowledge plus whatever prior hops already
+established as context, then **continues to the next hop** instead of
+breaking. This mirrors the router's REJECT semantics applied per-hop rather
+than per-query.
+
+| strategy | accuracy (n=80) |
+|---|---|
+| iterative multihop (with fallback) | **47.5%** |
+| naive single-shot | 22.5% |
+
+**The finding reverses completely.** Every retested example now completes
+all hops (`stopped_early: false` throughout the sample), and iterative
+decomposition beats naive single-shot generation by more than 2x -- the
+result the whole redesign was built to demonstrate: retrieval + verification
++ per-hop reasoning, composed correctly, outperforms asking a model to jump
+straight to a multi-hop answer in one shot.
+
+Qualitative example (case 1587): *"Who is the head of state of the country
+where Dave Holland's music originated?"* -- the naive baseline gives up
+outright ("The question does not provide enough information..."), while the
+fixed iterative loop correctly resolves the chain (Dave Holland -> jazz ->
+originated in the US... more precisely traces through the edited fact to
+France) to "Emmanuel Macron," the correct final answer.
+
+One recurring failure pattern worth flagging honestly: cases 1475 and 1917,
+both genuinely different questions, converged on the identical wrong answer
+"Gharbia Governorate" against a shared gold answer "Epworth" -- both chains
+pass through a "founder of a religion" hop, suggesting a specific, repeatable
+confusion the model has about that entity rather than two independent random
+errors. Worth a targeted look before scaling this test up.
+
+This result was obtained on the same 80-example sample, same model
+(`Qwen/Qwen2.5-1.5B-Instruct`), same oracle-decomposition scope as the
+original pilot -- the only change was the fallback logic in
+`akew_multihop.py`. Not yet retested at the brief's target model scale
+(GPT-J-6B / Qwen2.5-7B) or on a larger sample; both are natural next steps
+before this number is quotable anywhere formal.
