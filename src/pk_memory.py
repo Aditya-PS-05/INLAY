@@ -53,8 +53,7 @@ class ProductKeyMemory:
         # so we don't hold N*dim floats when only a few slots are written.
         self.values = {}              # slot_id -> value tensor (dim,)
         self.meta = {}                # slot_id -> arbitrary metadata (e.g. chunk text)
-        self._next_a = 0              # simple bump allocator over sub-bank A rows
-        self._next_b = 0
+        self._next_write = 0          # row-major bump allocator over the full (a,b) grid
         self._used_slots = []         # ordered list of occupied slot ids
 
     # ---- addressing -------------------------------------------------------
@@ -70,15 +69,31 @@ class ProductKeyMemory:
         Store (key, value). We dedicate a fresh (a, b) pair to this chunk and set
         the two half-keys so their concatenation reconstructs `key` (normalised).
         Returns the slot_id.
+
+        FIX (capacity bug): the original allocator advanced _next_a and _next_b
+        together, so every write landed on the diagonal a==b, capping real
+        capacity at n_sub writable slots regardless of the claimed n_sub**2 (a
+        n_sub=4096 table advertised as 16.7M slots was really 4096). This
+        allocator instead walks the full (a, b) grid row-major, so a and b are
+        independent and every one of the n_sub**2 logical slots is reachable —
+        the capacity the product-key design was always supposed to provide.
+
+        Note this does NOT reset which (a,b) rows are already occupied when a
+        HALF-key row is reused across two different logical slots sharing a or
+        b — that's inherent to the product-key scheme (half-keys are shared
+        across a whole row/column of the grid, not private per slot), not a
+        bug introduced or fixed here.
         """
         key = key.to(self.device, self.dtype).flatten()
         value = value.to(self.device, self.dtype).flatten()
         assert key.numel() == self.dim
         assert value.numel() == self.dim
 
-        a, b = self._next_a, self._next_b
-        if a >= self.n_sub or b >= self.n_sub:
-            raise RuntimeError("product-key memory full")
+        if self._next_write >= self.N:
+            raise RuntimeError(
+                f"product-key memory full: {self.N} slots ({self.n_sub}x{self.n_sub} grid) exhausted"
+            )
+        a, b = self._split(self._next_write)
 
         k = F.normalize(key, dim=0)
         self.half_keys_a[a] = k[: self.half]
@@ -89,10 +104,8 @@ class ProductKeyMemory:
         self.meta[sid] = meta
         self._used_slots.append(sid)
 
-        # advance the bump allocator down the diagonal so each write uses a new
-        # (a, b) — keeps written slots mutually addressable without collisions.
-        self._next_a += 1
-        self._next_b += 1
+        # row-major bump allocator over the FULL grid (see FIX note above).
+        self._next_write += 1
         return sid
 
     def clear(self, slot_id):
@@ -107,7 +120,7 @@ class ProductKeyMemory:
         single-edit benchmark protocol, where each record starts from an empty
         datastore so exactly one fact is addressable."""
         self.values.clear(); self.meta.clear(); self._used_slots.clear()
-        self._next_a = 0; self._next_b = 0
+        self._next_write = 0
         self.half_keys_a.zero_(); self.half_keys_b.zero_()
 
     # ---- read (product-key top-k) ----------------------------------------

@@ -168,12 +168,44 @@ class GPT2WithSemanticMemory:
         k_rel = self._resid(e_prompt, e_subj)
         return float(q_rel @ k_rel)
 
+    # ---- ONE shared scope decision, used by every generation path -----------
+    # This is the fix for the gate-bypass bug: gated_logits() previously applied
+    # the absolute/margin/relation gate stack, while answer_playback() only ever
+    # checked the absolute score, silently skipping margin and relation checks
+    # in the actual generation path (the one RippleEdits and demos run through).
+    # route() is now the single place that decision is made; nothing downstream
+    # may re-derive it independently.
+    @torch.no_grad()
+    def route(self, prompt, subject=None, gate=0.4, margin=0.0, rel_gate=0.0):
+        """Returns a dict: decision in {"REJECT","DIRECT"}, plus sid/score/score2/
+        rel_score/v/reason. Defaults (margin=0, rel_gate=0) reproduce the exact
+        pre-fix absolute-threshold-only behavior, so every existing caller that
+        doesn't opt into margin/rel_gate keeps its old numbers unchanged; passing
+        margin>0 or rel_gate>0 is what actually activates the stronger gate stack
+        this method was always documented as having."""
+        sid, score, score2, v = self.address_margin(prompt, subject)
+        if v is None or score < gate:
+            return {"decision": "REJECT", "sid": sid, "score": score, "score2": score2,
+                    "rel_score": None, "v": None,
+                    "reason": "no_slots" if v is None and sid is None else "below_gate"}
+        if (score - score2) < margin:
+            return {"decision": "REJECT", "sid": sid, "score": score, "score2": score2,
+                    "rel_score": None, "v": None, "reason": "margin"}
+        rel_score = None
+        if rel_gate > 0.0:
+            rel_score = self._rel_score(prompt, sid)
+            if rel_score < rel_gate:
+                return {"decision": "REJECT", "sid": sid, "score": score, "score2": score2,
+                        "rel_score": rel_score, "v": None, "reason": "relation_gate"}
+        return {"decision": "DIRECT", "sid": sid, "score": score, "score2": score2,
+                "rel_score": rel_score, "v": v, "reason": None}
+
     # ---- gated logits over a full (teacher-forced) sequence -----------------
     @torch.no_grad()
     def gated_logits(self, ids, n_prompt, gate, subject=None, multi=True, margin=0.0,
                      rel_gate=0.0):
-        """Address on the PROMPT (decoded from ids[:, :n_prompt]); if top score >=
-        gate, inject the stored value. Two modes:
+        """Address on the PROMPT (decoded from ids[:, :n_prompt]); if route() says
+        DIRECT, inject the stored value. Two modes:
 
           multi=False (v1 value): add alpha*<W_U, v_first> to EVERY position — only
             the first answer token gets help; caps efficacy on multi-token answers.
@@ -185,18 +217,13 @@ class GPT2WithSemanticMemory:
         The gate still fires on the PROMPT embedding only; playback emits what was WRITTEN
         into the slot, never the eval target — so this is retrieval, not label leakage."""
         prompt = self.tok.decode(ids[0, :n_prompt], skip_special_tokens=True)
-        sid, score, score2, v = self.address_margin(prompt, subject)
+        r = self.route(prompt, subject, gate=gate, margin=margin, rel_gate=rel_gate)
         out = self.model(input_ids=ids).logits[0]      # (T, vocab)
-        # Fire only if the top slot clears the absolute gate AND beats the runner-up
-        # by `margin` (locality robust to memory size) AND the query's RELATION matches
-        # the slot's relation by >= rel_gate (blocks same-subject/different-attribute
-        # over-firing — the compositional-portability weakness). rel_gate=0 disables it.
-        if v is None or score < gate or (score - score2) < margin:
-            return out, sid, score
-        if rel_gate > 0.0 and self._rel_score(prompt, sid) < rel_gate:
-            return out, sid, score
+        if r["decision"] != "DIRECT":
+            return out, r["sid"], r["score"]
+        sid, v = r["sid"], r["v"]
         if not multi:
-            return out + self.alpha * (v.unsqueeze(0) @ self.W_U.T), sid, score
+            return out + self.alpha * (v.unsqueeze(0) @ self.W_U.T), sid, r["score"]
         ans_ids = self.mem.meta[sid]["answer_ids"]
         T = out.shape[0]
         start = n_prompt - 1                            # position predicting answer token 0
@@ -205,18 +232,23 @@ class GPT2WithSemanticMemory:
             if 0 <= pos < T:
                 v_k = F.normalize(self.W_U[tokid], dim=0)
                 out[pos] = out[pos] + self.alpha * (v_k @ self.W_U.T)
-        return out, sid, score
+        return out, sid, r["score"]
 
     @torch.no_grad()
-    def answer_playback(self, prompt, subject=None, max_new_tokens=8, gate=0.4):
-        """Retrieval-augmented decoding on the semantic key: if a slot fires >= gate,
-        play back its stored answer tokens then let the base model continue."""
-        sid, score, v = self.address(prompt, subject)
+    def answer_playback(self, prompt, subject=None, max_new_tokens=8, gate=0.4,
+                        margin=0.0, rel_gate=0.0):
+        """Retrieval-augmented decoding on the semantic key: if route() says DIRECT,
+        play back the stored answer tokens then let the base model continue.
+        margin/rel_gate default to 0 (inert) so pre-fix callers reproduce their old
+        numbers exactly; pass margin>0 or rel_gate>0 to activate the full gate stack
+        that gated_logits() already supported but this path previously bypassed."""
+        r = self.route(prompt, subject, gate=gate, margin=margin, rel_gate=rel_gate)
         ids = self.tok(prompt, return_tensors="pt").to(self.device)
-        if sid is None or score < gate:
+        if r["decision"] != "DIRECT":
             out = self.model.generate(**ids, max_new_tokens=max_new_tokens, do_sample=False,
                                       pad_token_id=self.tok.eos_token_id)
             return self.tok.decode(out[0, ids.input_ids.shape[1]:], skip_special_tokens=True).strip(), None
+        sid = r["sid"]
         ans_ids = self.mem.meta[sid]["answer_ids"]
         cur = ids.input_ids
         for t in ans_ids[:max_new_tokens]:
