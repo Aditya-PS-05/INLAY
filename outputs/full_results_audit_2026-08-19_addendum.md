@@ -98,6 +98,53 @@ Headline findings:
   per edit (native accumulating mode, same caveat as entry 14/34 elsewhere).
   Mistral CF now reads INLAY 0.900 > WISE 0.573 > MEMIT 0.405 > ROME 0.340.
 
+## D2. vNext audit: gate-bypass and product-key capacity bugs (fixed, validated)
+
+Two confirmed bugs from a full code audit, both fixed on branch `vnext-gatefix`
+(baseline preserved at git tag `cake-current`, commit `efaff81`):
+
+**Bug A (gate bypass, CRITICAL for validity):** `answer_playback()` in
+`gpt2_memory_semkey.py`, the function every real generation path runs through
+(RippleEdits, demos), checked only the absolute score and silently skipped the
+margin and relation-residual gates that `gated_logits()` already supported.
+This means the relation gate's measured over-firing reduction (0.9667 -> 0.6667
+at `rel_gate=0.2`, logged in `relgate2.log` on ohio) was validated only on a
+separate teacher-forced harness (`eval_relgate_sweep.py`) and was **never
+actually active** in the matched-RippleEdits run that produced the published
+headline numbers. Fix: added `route()`, one shared REJECT/DIRECT decision used
+identically by both `gated_logits()` and `answer_playback()`. Regression tests
+in `tests/` verify same-subject/different-relation queries are now correctly
+rejected and both code paths agree on every decision.
+
+**Bug B (product-key capacity):** `ProductKeyMemory.write()` advanced both
+allocator indices together, so every write landed on the diagonal, capping real
+capacity at `n_sub` slots (4096, matching every eval config) against the
+claimed `n_sub**2` (16.7M). Verified this did NOT corrupt any published number:
+the single-edit-isolated protocol clears memory before every write, and the
+400-edit sequential test never approached the diagonal ceiling. Fixed to a
+row-major allocator over the full grid regardless.
+
+**Validation rerun (rel_gate=0.2, the exact operating point behind the
+published "0.97 -> 0.67" claim), CAKE only, matched manifest:**
+
+| aggregate | published (bug-affected) | corrected (fix genuinely active) | Δ |
+|---|---|---|---|
+| GPT-J | 0.2253 | 0.2283 | +0.0030 |
+| Qwen | 0.2871 | 0.2891 | +0.0020 |
+
+Both within noise. **No correction to the published headline numbers is
+needed.** GPT-J detail at rel_gate=0.2: Relation_Specificity 0.0867,
+Forgetfulness 0.0370, preservation_avg 0.0619 -- still weak even with the fix
+genuinely active, meaning the relation gate's isolated over-firing metric
+(0.97->0.67) does not translate into a meaningfully stronger matched-RippleEdits
+preservation score at this operating point. The honest reading: the bug was
+real, but the underlying compositional/preservation weakness this section of
+the blog already names as an open limitation is not solved by activating the
+gate at this threshold. A more aggressive rel_gate (0.4-0.5) cuts over-firing
+further per the original sweep (down to 0.37/0.10) at real propagation cost
+(0.77/0.47) -- untested against the full matched protocol; a candidate for a
+future ablation, not run here.
+
 ## D. Remaining open gaps after this addendum
 
 - Mistral: WISE + MEMIT zsRE (running); GRACE/AlphaEdit on Mistral never run.
