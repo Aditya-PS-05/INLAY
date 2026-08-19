@@ -89,13 +89,30 @@ def answer_contextual(model, tok, query, card, device, max_new_tokens=20):
     return _chat_generate(model, tok, user_content, device, max_new_tokens)
 
 
+def _fold(text):
+    """Diacritic-insensitive, case-insensitive normalization. Plain .lower()
+    silently fails on names like Turkish 'Ismail' vs 'İsmail': Python's
+    .lower() on 'İ' produces 'i' followed by a combining dot-above (U+0307),
+    not plain ASCII 'i', so a factually-perfect generated answer scores as a
+    miss against the gold string purely from encoding, not content -- a real
+    bug found by reading an actual WikiUpdate example where the model's
+    answer exactly matched gold and was still scored false. NFKD-decompose
+    then strip combining marks (category Mn) before casefolding, which
+    normalizes accented/dotted variants across languages generally, not just
+    this one Turkish case."""
+    import unicodedata
+    decomposed = unicodedata.normalize("NFKD", text)
+    stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return stripped.casefold()
+
+
 def is_hit(generated_text, gold):
     """AKEW-style accuracy: does the generated text contain the gold answer
-    or one of its aliases (normalized, case-insensitive substring)."""
-    gl = generated_text.lower()
+    or one of its aliases (diacritic- and case-insensitive substring)."""
+    gl = _fold(generated_text)
     candidates = [str(gold.target_new or "")] + [str(a) for a in (gold.aliases_new or [])]
     for c in candidates:
-        c = c.strip().lower()
+        c = _fold(c.strip())
         if c and len(c) >= 2 and c in gl:
             return True
     return False

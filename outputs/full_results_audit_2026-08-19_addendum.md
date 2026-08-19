@@ -97,6 +97,13 @@ Headline findings:
   2026-08-19 08:43 UTC)**: ES 0.9962 / PS 0.3097 / NS 1.00 / hm 0.5733 / 10.2s
   per edit (native accumulating mode, same caveat as entry 14/34 elsewhere).
   Mistral CF now reads INLAY 0.900 > WISE 0.573 > MEMIT 0.405 > ROME 0.340.
+- **WISE zsRE Mistral N=2000 (g6e4xlarge, `zsre_wise_mistral2k.log`, completed
+  2026-08-19, `MISTRAL_GAPFILL_DONE` marker written)**: ES 0.9481 / PS 0.9258 /
+  NS 1.00 / hm 0.9570 / 12.7s per edit (native accumulating mode). Mistral zsRE
+  now reads INLAY 1.00 > WISE 0.957 > MEMIT 0.718 > ROME 0.702. **This closes
+  the Mistral gap-fill chain entirely** (CF and zsRE, all four comparable
+  methods, MEMIT/WISE/ROME/INLAY). GRACE and AlphaEdit on Mistral remain unrun,
+  the only open items left for this model.
 
 ## D2. vNext audit: gate-bypass and product-key capacity bugs (fixed, validated)
 

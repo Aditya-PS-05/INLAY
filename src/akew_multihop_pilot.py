@@ -19,13 +19,14 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
 LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 80
+MODEL_NAME = sys.argv[2] if len(sys.argv) > 2 else "Qwen/Qwen2.5-1.5B-Instruct"
+VERIFIER_PATH = sys.argv[3] if len(sys.argv) > 3 else "outputs/akew_verifier_ckpt_v2"
 MODE = "structured"
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 
 cards, golds, groups = load_akew("MQuAKE-CF", MODE)
 index = DenseCardIndex()
 index.build(cards)
-verifier = CrossEncoder("outputs/akew_verifier_ckpt")
+verifier = CrossEncoder(VERIFIER_PATH)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 tok = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -74,7 +75,7 @@ for i, rec in sample:
             "naive_hit": naive_hits[-1] if naive_hits else None,
         })
 
-out = {"n": len(multihop_hits), "model": MODEL_NAME,
+out = {"n": len(multihop_hits), "model": MODEL_NAME, "verifier": VERIFIER_PATH,
        "accuracy": {
            "iterative_multihop": round(sum(multihop_hits) / len(multihop_hits), 4) if multihop_hits else None,
            "naive_single_shot": round(sum(naive_hits) / len(naive_hits), 4) if naive_hits else None,

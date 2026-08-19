@@ -82,8 +82,53 @@ REASON rather than the degraded DIRECT fallback. This is the strongest
 available evidence that the router fix is a genuine architectural
 correction, not an artifact of the smaller pilot model's specific behavior.
 
+## Extension: WikiUpdate, the hardest retrieval case
+
+WikiUpdate unstructured, n=160, real (non-oracle) pipeline, verifier v2.
+This is the dataset the Stage 1 retrieval pilot already flagged as hardest
+(~70% R@1, its real-world temporal old/new officeholder conflicts).
+
+| | accuracy | router decisions |
+|---|---|---|
+| routed full pipeline | **43.75%** | REJECT 42 / DIRECT 0 / REASON 118 |
+| always-force-REASON | 43.13% | -- |
+
+Retrieval correctness in the live pipeline: 71.88%, consistent with the
+Stage 1 finding this dataset is structurally harder. Two things worth
+noting. First, **the router's REJECT path is now doing real, visible work**:
+42/160 queries (26%) were correctly declined rather than forced through a
+low-confidence retrieval -- unlike CounterFact, where REJECT never fired
+because retrieval was near-perfect there. Second, routed still edges out
+forcing REASON blindly (43.75% vs 43.13%), a small but real margin from
+correctly declining to hallucinate on genuinely bad retrievals rather than
+generating a plausible-sounding wrong answer anyway.
+
+**A second real scoring bug was found and fixed here**: the first pass
+scored a factually-perfect answer ("Ismail Kartal") as a miss against gold
+("İsmail Kartal") purely because Python's `.lower()` does not map Turkish
+İ to plain ASCII 'i' (it produces 'i' plus a combining dot-above instead).
+Fixed `is_hit()` to NFKD-decompose and strip combining marks before
+case-folding, which corrects this generally across accented/diacritic
+names, not just this one case -- important specifically for WikiUpdate,
+whose real-world entities are far more likely to have non-ASCII names than
+CounterFact's. The numbers above are post-fix; the pre-fix run read 43.13%
+routed / 42.5% always-REASON, a real ~0.6-point undercount the fix recovered.
+
+## Extension: MQuAKE-CF multi-hop with verifier v2
+
+Reran the multi-hop pilot (same 80-example sample, same fallback fix) with
+the v2 verifier (trained with MQuAKE-CF hard negatives) instead of v1.
+Result: **identical, 47.5%**, bit-for-bit the same as v1. The multi-hop
+loop's fallback design (falling back to base-model knowledge on a
+low-verifier-score hop rather than terminating) appears robust to which
+verifier version is behind it, at least on this sample -- a reasonable,
+honest null result, not evidence either way about the verifier retrain's
+value specifically in the multi-hop setting.
+
 ## Scope note
 
-This test used CounterFact only; WikiUpdate and MQuAKE-CF full-pipeline
-tests (with the multi-hop fallback wired into live routing, not just the
-oracle-decomposition pilot) are the natural next extension, not yet run.
+Weight-editing baselines, IKE, and MeLLo remain out of scope for the reasons
+already stated (a separate multi-day harness-engineering phase). Structured-
+mode full-pipeline tests on WikiUpdate and MQuAKE-CF, and unstructured/
+extracted mode tests on MQuAKE-CF, are the remaining natural extensions of
+this specific line of testing.
