@@ -43,8 +43,19 @@ similar quality; MEMIT's real advantage (per this project's own INLAY
 sequential-editing findings) shows up at scale/under repeated edits, not
 single-edit accuracy.
 
-WISE in progress (full N=150 run, ~94% per-edit success rate observed so far
-mid-run: 63/67 edits landed EasyEdit's own `post.rewrite_acc == 1.0` check).
+## WISE: full run complete
+
+Full N=150 run finished: `edit_ok=141/147, accuracy=0.6667`. The per-edit
+landing rate mid-run (94%, 63/67) settled lower over the full run (96% of
+sampled test rows produced a usable edit: 141/147 after excluding rows
+skipped for missing gold fields) with final generation-based accuracy at
+66.67% -- well below AlphaEdit's 89.12% and even ROME/MEMIT's 83.67%, despite
+WISE's edits landing (per EasyEdit's own `post.rewrite_acc`) almost every
+time. This gap between "the edit registers" and "the edit is retrievable
+under real generation" is consistent with WISE's design: its side-memory
+routing decides at generation time whether to consult the edited memory at
+all, and that routing itself is an additional point of failure ROME/MEMIT/
+AlphaEdit's in-place weight updates don't have.
 
 ## GRACE: a genuine negative result, not a harness bug
 
@@ -76,11 +87,30 @@ consistent with GRACE's design intent (targeted retrieval-augmented editing
 via nearest-codebook-entry matching) being a poor fit for a benchmark that
 doesn't control for paraphrase distance from the training prompt.
 
+## Final results (GPT-J-6B, CounterFact structured, n=147)
+
 | method | edit_ok | accuracy |
 |---|---|---|
 | ROME | 147/147 | 83.67% |
 | MEMIT | 147/147 | 83.67% (identical to ROME) |
 | AlphaEdit | 147/147 | 89.12% |
-| WISE | in progress | -- |
+| WISE | 141/147 | 66.67% |
 | GRACE | 0/5 (smoke test) | **N/A -- edits don't land under this harness's real-generation scoring** |
 | CAKE (routed pipeline, same test set) | -- | **100.0%** |
+
+## Reading across all five
+
+Ranked by accuracy: AlphaEdit (89.12%) > ROME = MEMIT (83.67%) > WISE
+(66.67%) > GRACE (effectively 0%, edits don't land at all under real
+generation). CAKE's retrieval+verification+routing approach beats every
+weight-editing baseline on this identical test split, and the gap is not
+close for the two methods (WISE, GRACE) whose editing mechanism depends on
+something being correctly *retrieved* at generation time -- the exact
+failure mode CAKE's own verifier/router machinery is built to guard
+against. AlphaEdit's null-space-constrained in-place update is the
+strongest of the five weight-editors here, consistent with it being the
+most surgical, least representation-disrupting of the group; WISE and
+GRACE's added-module approach, whatever its other advantages (documented
+elsewhere in this project: WISE's resistance to catastrophic forgetting
+under long sequential-edit runs), is a liability specifically on this
+single-edit-accuracy metric.
