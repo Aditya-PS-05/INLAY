@@ -72,7 +72,12 @@ class KnowledgeCard:
 
 @dataclass
 class GoldRecord:
-    """Evaluation-only. Never passed to an editor; only to the scorer after generation."""
+    """Evaluation-only / training-data-construction-only. Never passed to an
+    editor at inference time; used by the scorer after generation, or by
+    offline hard-negative mining (which needs the true relation_id to group
+    same-subject/different-relation pairs even in unstructured/extracted mode,
+    where the KnowledgeCard itself correctly hides relation as None -- see
+    akew_hard_negatives.build_specificity_negatives)."""
     edit_id: str
     target_new: str
     target_true: Optional[str]
@@ -80,6 +85,7 @@ class GoldRecord:
     aliases_true: list
     eval_question: Optional[str] = None       # AKEW's `question` field, for editing-accuracy scoring
     mquake_questions: Optional[list] = None   # only set for MQuAKE-CF groups
+    relation_id: Optional[str] = None         # schema-level slot label, not an answer; safe for grouping
 
 
 def _rr_get(rr, key):
@@ -154,6 +160,7 @@ def _gold_from_rr(rr, edit_id):
         aliases_new=_gold_get(rr, "answer_new_alias", []) or [],
         aliases_true=_gold_get(rr, "answer_true_alias", []) or [],
         eval_question=_gold_get(rr, "question"),
+        relation_id=rr.get("relation_id"),  # not in GOLD_FIELDS: a schema label, not an answer
     )
 
 
