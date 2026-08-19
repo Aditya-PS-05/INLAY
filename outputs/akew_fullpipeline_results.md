@@ -59,6 +59,29 @@ the strongest evidence yet that the redesigned architecture (retrieval,
 verification, mode-aware routing, generation) composes correctly as a
 system, not just as isolated, independently-tuned components.
 
+## 7B-scale validation
+
+Reran the fixed unstructured-mode pipeline with `Qwen/Qwen2.5-7B-Instruct`
+(n=147, same test split), after resolving a real infrastructure issue: the
+host's small 25GB root disk filled up mid-download (only ~1GB free against a
+~15GB model), which surfaced as an opaque Xet "background writer channel
+closed" error that looked network-related but wasn't -- confirmed by the
+actual `huggingface_hub` disk-space warnings underneath it. Fixed by
+redirecting `HF_HOME` to the host's 360GB `/mnt/scratch` volume rather than
+the small root disk.
+
+| model | routed accuracy | router decisions |
+|---|---|---|
+| Qwen2.5-1.5B-Instruct | 87.07% | 147/147 REASON |
+| Qwen2.5-7B-Instruct | **89.12%** | 147/147 REASON |
+
+**The router's fixed decision logic and the underlying finding both hold at
+7B scale**: quality improves with model size as expected (87.07% -> 89.12%),
+and the router still correctly routes every unstructured-mode query to
+REASON rather than the degraded DIRECT fallback. This is the strongest
+available evidence that the router fix is a genuine architectural
+correction, not an artifact of the smaller pilot model's specific behavior.
+
 ## Scope note
 
 This test used CounterFact only; WikiUpdate and MQuAKE-CF full-pipeline

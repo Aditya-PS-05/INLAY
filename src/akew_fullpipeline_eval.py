@@ -39,7 +39,7 @@ import torch
 DATASET = sys.argv[1] if len(sys.argv) > 1 else "CounterFact"
 MODE = sys.argv[2] if len(sys.argv) > 2 else "unstructured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 200
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_NAME = sys.argv[4] if len(sys.argv) > 4 else "Qwen/Qwen2.5-1.5B-Instruct"
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
 
 cards, golds, _groups = load_akew(DATASET, MODE)
