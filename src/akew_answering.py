@@ -83,9 +83,19 @@ def answer_hard_playback(card, gold):
 
 
 @torch.no_grad()
-def answer_contextual(model, tok, query, card, device, max_new_tokens=20):
+def answer_contextual(model, tok, query, card, device, max_new_tokens=20, demonstrations=None):
+    """demonstrations: optional list[str], IKE-style worked examples showing
+    the override pattern ('New fact: ... Given this new fact, answer using
+    it, not what you previously believed'), prepended before the actual
+    evidence+question. Folds IKE's demonstrated finding (90.48% vs plain
+    RAG's 87.07% on CounterFact unstructured, akew_baseline_comparison_
+    results.md) into CAKE's own REASON path, on top of the retrieval/
+    verification/routing machinery plain IKE and RAG lack entirely. None
+    (the default) reproduces the exact prior behavior for every existing
+    caller -- this is additive, not a silent behavior change."""
     evidence = format_evidence(card)
-    user_content = f"{evidence}\n\nQuestion: {query}\nAnswer based only on the evidence above, in a few words."
+    demo_block = ("\n\n".join(demonstrations) + "\n\n") if demonstrations else ""
+    user_content = f"{demo_block}{evidence}\n\nQuestion: {query}\nAnswer based only on the evidence above, in a few words."
     return _chat_generate(model, tok, user_content, device, max_new_tokens)
 
 

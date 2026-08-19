@@ -40,6 +40,12 @@ DATASET = sys.argv[1] if len(sys.argv) > 1 else "CounterFact"
 MODE = sys.argv[2] if len(sys.argv) > 2 else "unstructured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 200
 MODEL_NAME = sys.argv[4] if len(sys.argv) > 4 else "Qwen/Qwen2.5-1.5B-Instruct"
+# akew_fullpipeline_results.md: MQuAKE-CF structured (82.54% live retrieval
+# correctness) is the one dataset where the default 0.85 direct_threshold
+# makes DIRECT fire on unreliable retrievals and lose to always-REASON
+# (93.65% vs 96.83%). Optional override to test whether a stricter,
+# dataset-aware threshold (rather than retraining anything) recovers the gap.
+DIRECT_THRESHOLD = float(sys.argv[5]) if len(sys.argv) > 5 else 0.85
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
 
 cards, golds, _groups = load_akew(DATASET, MODE)
@@ -51,7 +57,7 @@ if LIMIT and LIMIT < len(test):
 index = DenseCardIndex()
 index.build(cards)   # full card pool, including OTHER groups' cards -- realistic retrieval difficulty
 verifier = CrossEncoder(VERIFIER_PATH)
-router = AkewRouter(index, verifier)
+router = AkewRouter(index, verifier, direct_threshold=DIRECT_THRESHOLD)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 tok = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -102,6 +108,7 @@ for c in test:
 n = len(routed_hits)
 out = {
     "dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME, "verifier": "v2",
+    "direct_threshold": DIRECT_THRESHOLD,
     "accuracy": {
         "routed_full_pipeline": round(sum(routed_hits) / n, 4) if n else None,
         "always_reason_no_routing": round(sum(always_reason_hits) / n, 4) if n else None,

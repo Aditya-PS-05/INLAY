@@ -161,6 +161,41 @@ a concrete, cheap improvement worth folding into CAKE's own REASON path
 and IKE lack entirely and would need on datasets where REJECT matters, like
 WikiUpdate).
 
+## Following up: does raising the DIRECT threshold fix MQuAKE-CF structured?
+
+Tested two threshold variants against the same MQuAKE-CF structured split,
+directly following the finding above rather than assuming a fix would work.
+
+| direct_threshold | routed accuracy | router decisions | always-REASON (ref) |
+|---|---|---|---|
+| 0.85 (default) | 93.65% | DIRECT 53 / REASON 6 / REJECT 4 | 96.83% |
+| 0.97 | 93.65% (identical) | DIRECT 53 / REASON 6 / REJECT 4 (identical) | 96.83% |
+| 1.01 (DIRECT fully disabled) | 90.48% | DIRECT 0 / REASON 59 / REJECT 4 | 96.83% |
+
+**Raising the threshold to 0.97 changed nothing** -- the verifier's confidence
+on MQuAKE-CF's wrong retrievals is already above 0.97 (matching the
+recalibration ablation's finding that the positive/negative score
+distributions genuinely overlap there; no scalar threshold separates them).
+**Fully disabling DIRECT still trails always-REASON** (90.48% vs 96.83%),
+which at first looks like it shouldn't be possible -- if every non-REJECT
+query goes to REASON either way, routed and always-REASON should be
+identical. The gap is the 4 REJECT cases: routed's REJECT answers those from
+the base model's own knowledge alone (no retrieved evidence at all), while
+always-REASON forces generation over whatever was retrieved regardless of
+confidence -- and on this dataset, even a low-confidence, possibly-imperfect
+retrieval turns out to carry more useful signal than no evidence at all.
+
+**Honest conclusion: neither threshold, tuned individually, fully closes this
+gap.** The router's two scope decisions (reject vs proceed, direct vs reason)
+are each individually net-negative on MQuAKE-CF's specific retrieval-
+reliability regime. The practical fix isn't a numeric threshold sweep at
+all -- it's recognizing that for a dataset this retrieval-unreliable, the
+correct router configuration is closer to a full bypass (always REASON, both
+gates disabled) than any calibrated version of the gates themselves. This is
+a genuinely different, more decisive conclusion than the original "recover
+the gap with a stricter DIRECT threshold" hypothesis, reached by actually
+testing it rather than assuming the fix would work once identified.
+
 ## Scope note
 
 Weight-editing baselines (ROME/MEMIT/AlphaEdit/WISE/GRACE) and MeLLo remain

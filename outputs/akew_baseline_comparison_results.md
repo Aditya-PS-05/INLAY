@@ -62,6 +62,30 @@ retrieval is uncertain (WikiUpdate-style), where CAKE's REJECT path has
 already shown real, measured value that plain RAG/IKE structurally cannot
 replicate.
 
+## Follow-up: folding IKE's demonstrations into CAKE's own REASON path
+
+Directly tested the "what this means for CAKE's positioning" suggestion
+above rather than leaving it as a proposal. `answer_contextual()` gained an
+optional `demonstrations` parameter (backward-compatible, `None` by default
+reproduces every prior result exactly); the REASON path now optionally
+includes 2 IKE-style demonstrations on top of CAKE's full retrieval/
+verification/routing machinery.
+
+| | accuracy |
+|---|---|
+| CAKE routed, no demonstrations | 87.07% |
+| **CAKE routed + IKE demonstrations** | **89.12%** |
+| plain IKE (no retrieval/verification/REJECT) | 90.48% |
+
+A real, honest +2.05 point improvement from adding demonstrations to CAKE's
+own pipeline -- confirms the mechanism transfers, worth keeping. It still
+trails plain IKE by 1.36 points on this specific dataset/mode, where
+retrieval is already near-perfect and REJECT never fires, so CAKE's extra
+machinery adds cost without adding value here. The real test of whether
+CAKE+IKE beats plain IKE is a dataset where REJECT matters (WikiUpdate,
+which plain IKE/RAG cannot benefit from having no REJECT path at all) --
+not yet run.
+
 ## Scope note
 
 This is one dataset/mode comparison (CounterFact unstructured). The weight-
