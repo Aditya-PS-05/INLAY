@@ -51,3 +51,7 @@ for cat in CATEGORIES:
         ex = items[0]
         print(f"    example query: {ex.query_text[:100]!r}")
         print(f"    wrong card:    {ex.wrong_card_id[:80]!r}  (true edit: {ex.source_edit_id})")
+        print(f"    candidate_text: {ex.candidate_text[:100]!r}")
+        empty_ct = sum(1 for x in items if not x.candidate_text)
+        if empty_ct:
+            print(f"    WARNING: {empty_ct}/{len(items)} examples in this category have empty candidate_text")

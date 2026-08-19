@@ -25,6 +25,9 @@ class NegativeExample:
     wrong_card_id: str
     negative_type: str          # one of the 8 category names below
     source_edit_id: str         # the edit_id the query actually belongs to
+    candidate_text: str = ""    # the actual text a trainer feeds the verifier as the
+                                 # candidate side -- explicit rather than parsed back
+                                 # out of synthetic ids like "edit__stale(...)"
 
 
 CATEGORIES = [
@@ -41,6 +44,10 @@ CATEGORIES = [
 
 def _query_for(card, gold):
     return gold.eval_question if (gold and gold.eval_question) else (card.canonical_fact_text or card.raw_evidence_text or "")
+
+
+def _card_text(card):
+    return card.canonical_fact_text or card.raw_evidence_text or ""
 
 
 def build_specificity_negatives(cards, golds):
@@ -73,12 +80,12 @@ def build_specificity_negatives(cards, golds):
         # type 1: same subject, different relation
         siblings = [o for o in by_subject[c.subject] if o.edit_id != c.edit_id and rel_of[o.edit_id] != my_rel]
         for o in siblings[:2]:
-            negs.append(NegativeExample(q, o.edit_id, "same_subject_diff_relation", c.edit_id))
+            negs.append(NegativeExample(q, o.edit_id, "same_subject_diff_relation", c.edit_id, _card_text(o)))
         # type 2: same relation, different subject
         if my_rel:
             cousins = [o for o in by_relation[my_rel] if o.edit_id != c.edit_id and o.subject != c.subject]
             for o in cousins[:2]:
-                negs.append(NegativeExample(q, o.edit_id, "same_relation_diff_subject", c.edit_id))
+                negs.append(NegativeExample(q, o.edit_id, "same_relation_diff_subject", c.edit_id, _card_text(o)))
     return negs
 
 
@@ -103,17 +110,17 @@ def build_neighbor_negatives(cards, golds, index, topk=8, per_query=3):
             continue
         # type 3: nearest wrong neighbor (rank 1-2 among wrong candidates)
         for card_w, _rank in wrong[:1]:
-            negs.append(NegativeExample(q, card_w.edit_id, "nearest_semantic_neighbor", c.edit_id))
+            negs.append(NegativeExample(q, card_w.edit_id, "nearest_semantic_neighbor", c.edit_id, _card_text(card_w)))
         # type 6: mid-rank wrong neighbor (rank 3+), still similar enough to
         # have made the candidate set at all
         for card_w, _rank in wrong[2:2 + 1]:
-            negs.append(NegativeExample(q, card_w.edit_id, "lexically_similar_irrelevant", c.edit_id))
+            negs.append(NegativeExample(q, card_w.edit_id, "lexically_similar_irrelevant", c.edit_id, _card_text(card_w)))
         # type 8: any wrong candidate ranked BELOW the true card specifically
         # (only meaningful when the true card was actually retrieved)
         if true_rank is not None:
             below = [r[0] for i, r in enumerate(results) if i + 1 > true_rank][:per_query]
             for card_w in below:
-                negs.append(NegativeExample(q, card_w.edit_id, "ranked_below_correct", c.edit_id))
+                negs.append(NegativeExample(q, card_w.edit_id, "ranked_below_correct", c.edit_id, _card_text(card_w)))
     return negs
 
 
@@ -139,8 +146,13 @@ def build_stale_object_negatives(cards, golds, dataset_name):
         # guard meaningful: this module reads target_true explicitly as an
         # evaluator-side operation on already-separated GoldRecords, not
         # during ingestion).
-        stale_id = f"{c.edit_id}__stale({gold.target_true})"
-        negs.append(NegativeExample(q, stale_id, "stale_object_same_slot", c.edit_id))
+        stale_id = f"{c.edit_id}__stale"
+        card_text = _card_text(c)
+        if gold.target_new and str(gold.target_new) in card_text:
+            stale_text = card_text.replace(str(gold.target_new), str(gold.target_true))
+        else:
+            stale_text = f"{c.subject} {gold.target_true}"
+        negs.append(NegativeExample(q, stale_id, "stale_object_same_slot", c.edit_id, stale_text))
     return negs
 
 
@@ -165,8 +177,8 @@ def build_sibling_triple_negatives(cards, golds, raw_triplets_by_edit):
         # a different aspect of the same source is a same-document distractor
         for t in triples[1:3]:
             sib_text = f"{t.get('prompt','{}').replace('{}', t.get('subject',''))} {t.get('target','')}"
-            negs.append(NegativeExample(q, f"{c.edit_id}__sibling({sib_text[:60]})",
-                                        "same_document_sibling_triple", c.edit_id))
+            negs.append(NegativeExample(q, f"{c.edit_id}__sibling", "same_document_sibling_triple",
+                                        c.edit_id, sib_text))
     return negs
 
 
@@ -187,7 +199,8 @@ def build_prefixed_unrelated_negatives(cards, golds, seed=0):
         # this fused query should NOT match other_c (it's not really about
         # other_c's fact, just superficially phrased to start like it) --
         # the true label is: matches c's own card, NOT other_c's
-        negs.append(NegativeExample(fused_q, other_c.edit_id, "prefixed_unrelated_question", c.edit_id))
+        negs.append(NegativeExample(fused_q, other_c.edit_id, "prefixed_unrelated_question",
+                                    c.edit_id, _card_text(other_c)))
     return negs
 
 
