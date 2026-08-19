@@ -28,7 +28,13 @@ based scoring before any full run was trusted.
 |---|---|---|
 | ROME | 147/147 | 83.67% |
 | MEMIT | 147/147 | 83.67% (identical to ROME) |
+| AlphaEdit | 147/147 | 89.12% |
 | CAKE (routed pipeline, same test set) | -- | **100.0%** |
+
+AlphaEdit's edge over ROME/MEMIT (89.12% vs 83.67%) is consistent with its
+own design: the null-space-constrained update is specifically built to be
+more surgical per-edit, and that shows up here even on single-edit accuracy,
+not just the multi-edit preservation it's usually credited for.
 
 ROME and MEMIT landing at the identical 83.67% is plausible, not suspicious:
 both are well-established single-edit-scale weight editors and CounterFact
