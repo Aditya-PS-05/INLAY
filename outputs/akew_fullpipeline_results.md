@@ -125,10 +125,46 @@ verifier version is behind it, at least on this sample -- a reasonable,
 honest null result, not evidence either way about the verifier retrain's
 value specifically in the multi-hop setting.
 
+## Extension: WikiUpdate and MQuAKE-CF, structured mode
+
+WikiUpdate structured (n=160): routed 99.38% vs always-REASON 96.25%, router
+159/160 DIRECT (1 REJECT) -- confirms the same clean structured-mode pattern
+CounterFact showed: DIRECT genuinely earns its place when the card carries a
+literal answer.
+
+**MQuAKE-CF structured (n=63) breaks that pattern -- a real, dataset-specific
+finding, not noise.** Routed pipeline (93.65%) actually loses to
+always-forcing-REASON (96.83%), the opposite of every other structured-mode
+result. Router decisions: DIRECT 53, REASON 6, REJECT 4 -- mixed, unlike the
+near-unanimous DIRECT calls elsewhere. Root cause traced to retrieval
+quality: MQuAKE-CF's retrieval correctness in the live pipeline is 82.54%,
+meaningfully below CounterFact/WikiUpdate structured's ~99%, consistent with
+the Stage 1 pilot's original finding that MQuAKE-CF's entity/relation
+collisions make retrieval structurally harder. When DIRECT confidently
+recites a literal answer from a WRONG retrieval, it fails outright; REASON's
+generation, even over the same imperfect evidence, degrades more gracefully.
+**The lesson: DIRECT's confidence threshold should probably be tied to the
+dataset's actual retrieval reliability, not a single global threshold** --
+the same class of finding as the verifier's threshold-miscalibration result,
+now showing up in the router's DIRECT/REASON boundary too. Not fixed in this
+pass; a concrete, specific direction for future router calibration work.
+
+## Baseline comparison: CAKE vs plain RAG vs IKE
+
+See `akew_baseline_comparison_results.md` for the full report. Headline,
+CounterFact unstructured (n=147): CAKE and plain RAG tie at 87.07% (they are
+mechanically identical here, since the router routes 100% to REASON on this
+dataset/mode); **IKE (RAG plus few-shot override demonstrations) wins at
+90.48%** -- a real, honestly-reported result that doesn't flatter CAKE, and
+a concrete, cheap improvement worth folding into CAKE's own REASON path
+(demonstrations plus CAKE's retrieval/verification/routing, which plain RAG
+and IKE lack entirely and would need on datasets where REJECT matters, like
+WikiUpdate).
+
 ## Scope note
 
-Weight-editing baselines, IKE, and MeLLo remain out of scope for the reasons
-already stated (a separate multi-day harness-engineering phase). Structured-
-mode full-pipeline tests on WikiUpdate and MQuAKE-CF, and unstructured/
-extracted mode tests on MQuAKE-CF, are the remaining natural extensions of
-this specific line of testing.
+Weight-editing baselines (ROME/MEMIT/AlphaEdit/WISE/GRACE) and MeLLo remain
+out of scope for the reasons already stated (a separate multi-day harness-
+engineering phase). Unstructured/extracted mode tests on MQuAKE-CF, and
+testing whether IKE's demonstration boost holds up under WikiUpdate-style
+retrieval uncertainty, are the remaining natural extensions.
