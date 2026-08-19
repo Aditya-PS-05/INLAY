@@ -14,6 +14,8 @@ METHOD=sys.argv[1]
 MODEL=sys.argv[2]
 ALPHA=float(sys.argv[3]) if len(sys.argv)>3 else 20.0
 GATE=float(sys.argv[4]) if len(sys.argv)>4 else 0.45
+REL_GATE=float(sys.argv[5]) if len(sys.argv)>5 else 0.0
+MARGIN=float(sys.argv[6]) if len(sys.argv)>6 else 0.0
 MAXNEW=24
 CRIT=["Logical_Generalization","Compositionality_I","Compositionality_II","Subject_Aliasing","Relation_Specificity","Forgetfulness"]
 PROP={"Logical_Generalization","Compositionality_I","Compositionality_II","Subject_Aliasing"}
@@ -78,7 +80,9 @@ def gen_query(prompt):
         return gen_plain(CTX["prefix"]+prompt)
     if METHOD=="cake":
         # correct cake read path: dedicated playback (fires slot if gate met, else plain gen)
-        txt,_=g.answer_playback(prompt,max_new_tokens=MAXNEW,gate=GATE)
+        # margin/rel_gate now actually reach the real generation path post gate-bypass fix
+        # (pre-fix, answer_playback ignored both regardless of what was passed here)
+        txt,_=g.answer_playback(prompt,max_new_tokens=MAXNEW,gate=GATE,margin=MARGIN,rel_gate=REL_GATE)
         return txt
     return gen_plain(prompt)  # base, ROME, WISE, AlphaEdit (weights already edited)
 
@@ -124,6 +128,7 @@ pv=[ca[c] for c in CRIT if c in PROP and ca[c] is not None]
 sv=[ca[c] for c in CRIT if c not in PROP and ca[c] is not None]
 al=[v for v in ca.values() if v is not None]
 out={"method":METHOD,"model":MODEL,"n_edits":nused,"n_manifest":len(EXS),"alpha":ALPHA,"gate":GATE,
+     "rel_gate":REL_GATE,"margin":MARGIN,
      "criteria":ca,"propagation_avg":round(sum(pv)/len(pv),4) if pv else None,
      "preservation_avg":round(sum(sv)/len(sv),4) if sv else None,
      "aggregate":round(sum(al)/len(al),4) if al else None,
