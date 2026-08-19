@@ -28,13 +28,38 @@ def _card_text(card):
 
 def build_demonstrations(index, exclude_edit_id, n=2, seed=0):
     """Pick n other cards at random (excluding the query's own) to build
-    worked demonstration examples from. A more faithful IKE would select
-    demonstrations by similarity to the query's structure; this pilot uses
-    random selection from the pool, which is a real, honest scoping
-    simplification -- IKE's own similarity-based selection is not built here."""
+    worked demonstration examples from. A real, honest scoping simplification
+    from IKE's own similarity-based selection -- see build_demonstrations_
+    similarity() below for the real-IKE-mechanism variant, added specifically
+    to test whether it fixes the WikiUpdate regression random selection
+    caused (outputs/akew_baseline_comparison_results.md)."""
     rng = random.Random(seed)
     pool = [c for c in index.cards if c.edit_id != exclude_edit_id]
     picks = rng.sample(pool, min(n, len(pool)))
+    demos = []
+    for c in picks:
+        text = _card_text(c)
+        if not text:
+            continue
+        demos.append(f"New fact: {text}\nGiven this new fact, answer questions using it, "
+                     f"not what you previously believed.")
+    return demos
+
+
+def build_demonstrations_similarity(index, query_text, exclude_edit_id, n=2, topk=8):
+    """IKE's actual mechanism: demonstrations selected by similarity to the
+    query, not at random. Retrieves the topk nearest cards to the query
+    (excluding the query's own true card) and takes the n closest as
+    demonstrations. Hypothesis being tested: random demonstrations on
+    WikiUpdate's collision-heavy entity space introduced confusing,
+    unrelated context (the negative finding in akew_baseline_comparison_
+    results.md); similarity-selected demonstrations might be MORE
+    confusable in a collision-heavy dataset (a demo about a near-duplicate
+    entity competing with the real one), not less -- genuinely uncertain
+    which direction this goes, which is exactly why it needs to be tested
+    empirically rather than assumed."""
+    candidates = index.query(query_text, topk=topk + 1)
+    picks = [c for c, _score in candidates if c.edit_id != exclude_edit_id][:n]
     demos = []
     for c in picks:
         text = _card_text(c)

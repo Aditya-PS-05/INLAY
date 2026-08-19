@@ -122,6 +122,36 @@ simplification, before it can be trusted on datasets with WikiUpdate's
 collision structure. Recorded as a genuine negative result, not smoothed
 into the earlier positive CounterFact finding.
 
+## Does IKE's real similarity-based selection fix the WikiUpdate regression?
+
+The obvious next hypothesis: the random demonstration selection is the
+problem, and IKE's real similarity-based selection (its actual published
+mechanism, not this project's random-sampling simplification) would fix it.
+Implemented `build_demonstrations_similarity()` (nearest cards to the query
+by embedding similarity, excluding the true card) and tested it directly
+rather than assuming.
+
+| demonstration selection | accuracy |
+|---|---|
+| none | 43.75% |
+| random | 40.62% |
+| **similarity-based (IKE's real mechanism)** | **38.75%** |
+
+**Similarity-based selection makes it WORSE, not better.** This decisively
+answers the question the earlier scoping note left open: the problem is not
+that this project used a cheap random-selection stand-in for IKE's real
+mechanism. On a collision-heavy dataset like WikiUpdate, a demonstration
+that is MORE similar to the query is MORE likely to be a near-duplicate,
+easily-confused fact (the same structural property behind WikiUpdate's
+stale-object confusions and harder retrieval), not less -- the opposite of
+demonstrations' intended effect. **The fix is not a better demonstration-
+selection algorithm; it's recognizing that the demonstration mechanism
+itself is fundamentally at odds with high-entity-collision data**, and
+should be gated off (or replaced with a mechanism explicitly designed to
+avoid near-duplicate confusion) for datasets like WikiUpdate, rather than
+deployed universally the way it helped on CounterFact's largely-independent
+facts.
+
 ## Scope note
 
 This is one dataset/mode comparison (CounterFact unstructured). The weight-

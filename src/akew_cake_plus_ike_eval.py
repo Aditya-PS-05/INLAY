@@ -15,7 +15,7 @@ from akew_splits import subject_disjoint_split
 from akew_retrieval import DenseCardIndex
 from akew_router import AkewRouter
 from akew_answering import answer_contextual, answer_no_context, answer_hard_playback, is_hit
-from akew_baseline_ike import build_demonstrations
+from akew_baseline_ike import build_demonstrations, build_demonstrations_similarity
 from sentence_transformers import CrossEncoder
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
@@ -23,6 +23,7 @@ import torch
 DATASET = sys.argv[1] if len(sys.argv) > 1 else "CounterFact"
 MODE = sys.argv[2] if len(sys.argv) > 2 else "unstructured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 150
+DEMO_MODE = sys.argv[4] if len(sys.argv) > 4 else "random"   # "random" | "similarity"
 MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
 
@@ -64,7 +65,10 @@ for c in test:
         ans = answer_hard_playback(routed_card, golds.get(decision.card_id))
         ans_no_demo = ans
     else:  # REASON
-        demos = build_demonstrations(index, decision.card_id, n=2, seed=0)
+        if DEMO_MODE == "similarity":
+            demos = build_demonstrations_similarity(index, q, decision.card_id, n=2)
+        else:
+            demos = build_demonstrations(index, decision.card_id, n=2, seed=0)
         ans = answer_contextual(model, tok, q, routed_card, device, demonstrations=demos) if routed_card else answer_no_context(model, tok, q, device)
         ans_no_demo = answer_contextual(model, tok, q, routed_card, device) if routed_card else answer_no_context(model, tok, q, device)
 
@@ -77,7 +81,7 @@ for c in test:
                              "no_demo": ans_no_demo, "no_demo_hit": hits_no_demo[-1]})
 
 n = len(hits)
-out = {"dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME,
+out = {"dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME, "demo_mode": DEMO_MODE,
        "accuracy": {
            "cake_routed_plus_ike_demos": round(sum(hits) / n, 4) if n else None,
            "cake_routed_no_demos": round(sum(hits_no_demo) / n, 4) if n else None,
