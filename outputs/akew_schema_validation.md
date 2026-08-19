@@ -52,6 +52,49 @@ location (`os.path.dirname(os.path.abspath(__file__))`), not the caller's cwd,
 after an initial version broke depending on whether it was invoked from
 `cake_prototype/` or `cake_prototype/src/`.
 
+## Stage 1 retrieval pilot (dense, no ANN, full data, no sampling)
+
+`src/akew_retrieval.py` (exact dense retrieval, raw normalized MiniLM
+embeddings, no JL projection) + `src/akew_retrieval_pilot.py`, run on
+g6e4xlarge over the complete dataset (not a sample) for all 9 dataset x mode
+combinations, using each card's own AKEW `question` field as the query
+(read only by the evaluator script, never during index construction):
+
+| dataset | mode | Recall@1 | Recall@5 | MRR | no-candidate rate |
+|---|---|---|---|---|---|
+| CounterFact | structured | 0.999 | 1.000 | 0.9995 | 0.0% |
+| CounterFact | unstructured | 0.995 | 1.000 | 0.9974 | 0.0% |
+| CounterFact | extracted | 0.992 | 0.998 | 0.9947 | 0.2% |
+| MQuAKE-CF | structured | 0.773 | 0.917 | 0.8287 | 8.3% |
+| MQuAKE-CF | unstructured | 0.750 | 0.913 | 0.8115 | 8.7% |
+| MQuAKE-CF | extracted | 0.727 | 0.906 | 0.7956 | 9.4% |
+| WikiUpdate | structured | 0.996 | 1.000 | 0.9979 | 0.0% |
+| WikiUpdate | unstructured | 0.703 | 0.842 | 0.7587 | 15.8% |
+| WikiUpdate | extracted | 0.703 | 0.854 | 0.7632 | 14.6% |
+
+**Retrieval quality is not uniform across datasets or input conditions**,
+which matters for interpreting anything downstream: CounterFact is close to
+saturated everywhere (its facts are largely unrelated to each other, an easy
+retrieval problem by construction). MQuAKE-CF is meaningfully harder even at
+the single-hop level, likely because it was built for multi-hop chains and
+so entities/relations recur across records more than CounterFact's do.
+WikiUpdate's structured condition is near-perfect, but unstructured/extracted
+collapse to ~70% Recall@1 with a 15%+ no-candidate rate -- a real, large gap,
+not router noise. The likely cause: WikiUpdate's own schema stores explicit
+`time_true`/`time_new` validity intervals specifically because it contains
+temporally conflicting facts (an old office-holder and a new one for the same
+role), and unstructured prose about the new holder can closely resemble prose
+about the old one, a genuinely hard disambiguation case for pure semantic
+similarity that a router will not be able to fully cover for if the correct
+card isn't even retrieved into the candidate set to begin with.
+
+Practical implication for section 4's scope verifier: its hardest job is not
+uniform across the benchmark. On CounterFact it barely matters (retrieval is
+already near-perfect). On WikiUpdate's unstructured conditions, no verifier
+can recover from a 15% retrieval miss rate -- that failure has to be attacked
+at the retrieval/embedding stage (or accepted and reported honestly as a
+retrieval-limited ceiling), not the verifier stage.
+
 ## What this milestone does NOT cover yet
 
 This is section 2+3 of the vNext brief only: data acquired, validated, and
