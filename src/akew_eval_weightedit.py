@@ -22,13 +22,28 @@ unedited base model). Never repeating that mistake here.
 Usage: python akew_eval_weightedit.py <METHOD> <model_label> [N] [yaml_name]
   METHOD in {ROME, MEMIT, AlphaEdit, WISE, GRACE}
   e.g. python akew_eval_weightedit.py ROME gpt-j-6b 150 gpt-j-6B
-"""
-"""
+
 Run this from ~/cake/EasyEdit (matching every other EasyEdit-based harness in
 this project) with PYTHONPATH=~/cake/EasyEdit set externally -- the same
 convention rm2_gptj_chain.sh and eval_cf_we.py already use. The akew_* modules
 live in a completely different directory tree (~/kw/cake_prototype/src), so
 that path is added explicitly and absolutely below, not assumed from CWD.
+
+WISE runs in NATIVE ACCUMULATING MODE, not the isolated-then-restore protocol
+ROME/MEMIT/AlphaEdit use. Real bug found running this: WISE wraps the edited
+layer in its own side-memory module rather than modifying an existing
+tensor's VALUES in place (what ROME/MEMIT/AlphaEdit all do), so the model's
+state_dict KEY STRUCTURE itself changes after a WISE edit -- the generic
+state-dict-diff restore() crashed with KeyError on every single edit
+(edit_ok=0/147, correctly caught by the fail-loud guard rather than silently
+reporting a wrong number). This is architecturally consistent with WISE's
+treatment everywhere else in this project (flagged with a dagger wherever it
+appears: relgate2.log, the matched-RippleEdits WISE dagger footnote) --
+WISE's side memory is DESIGNED to accumulate across edits, not be reset
+between them. Fixed by skipping detect_changed()/restore() entirely for
+WISE and scoring each edit immediately after it installs, before the next
+edit accumulates on top -- the same native mode used consistently elsewhere,
+not a new inconsistency introduced here.
 """
 import sys, os, json, random, torch
 
@@ -79,6 +94,8 @@ random.seed(0)
 if N and N < len(test):
     test = random.sample(test, N)
 
+WISE_ACCUMULATING = (METHOD == "WISE")
+
 hits, edit_ok, edit_fail = [], 0, 0
 for c in test:
     g = golds.get(c.edit_id)
@@ -86,16 +103,30 @@ for c in test:
         continue
     prompt = c.canonical_fact_text.rsplit(" ", 1)[0] if " " in c.canonical_fact_text else c.canonical_fact_text
     try:
-        editor.edit(prompts=[prompt], subject=[c.subject], target_new=[" " + str(g.target_new)],
-                    sequential_edit=True, keep_original_weight=False, verbose=False,
-                    **({"loc_prompts": [prompt + " " + str(g.target_true or g.target_new)]} if METHOD == "WISE" else {}))
-        if not _changed_keys:
-            detect_changed()
-        if not _changed_keys:
-            edit_fail += 1
-            hits.append(False)
-            continue
-        edit_ok += 1
+        metrics, _, _ = editor.edit(
+            prompts=[prompt], subject=[c.subject], target_new=[" " + str(g.target_new)],
+            sequential_edit=True, keep_original_weight=False, verbose=False,
+            **({"loc_prompts": [prompt + " " + str(g.target_true or g.target_new)]} if METHOD == "WISE" else {}))
+        if WISE_ACCUMULATING:
+            # EasyEdit's own post-edit metric is the success signal here, since
+            # state-dict key diffing doesn't apply once the module structure
+            # itself has changed.
+            post_acc = metrics[0].get("post", {}).get("rewrite_acc", 0.0)
+            if isinstance(post_acc, (list, tuple)):
+                post_acc = post_acc[0] if post_acc else 0.0
+            if float(post_acc) <= 0.0:
+                edit_fail += 1
+                hits.append(False)
+                continue
+            edit_ok += 1
+        else:
+            if not _changed_keys:
+                detect_changed()
+            if not _changed_keys:
+                edit_fail += 1
+                hits.append(False)
+                continue
+            edit_ok += 1
         ids = tok(g.eval_question, return_tensors="pt").to(device)
         out = model.generate(**ids, max_new_tokens=20, do_sample=False, pad_token_id=tok.eos_token_id)
         ans = tok.decode(out[0, ids.input_ids.shape[1]:], skip_special_tokens=True).strip()
@@ -105,7 +136,8 @@ for c in test:
         hits.append(False)
         print(f"EDIT_ERROR {c.edit_id}: {type(e).__name__}: {e}", file=sys.stderr)
     finally:
-        restore()
+        if not WISE_ACCUMULATING:
+            restore()
 
 n = len(hits)
 if edit_ok == 0:
@@ -115,6 +147,8 @@ if edit_ok == 0:
 out = {"method": METHOD, "model": MODEL_LABEL, "dataset": "CounterFact", "input_mode": "structured",
        "n": n, "edit_ok": edit_ok, "edit_fail": edit_fail,
        "accuracy": round(sum(hits) / n, 4) if n else None}
+if WISE_ACCUMULATING:
+    out["wise_mode"] = "sequential_accumulating"
 print("<<<JSON>>>")
 print(json.dumps(out))
 print("<<<END>>>")
