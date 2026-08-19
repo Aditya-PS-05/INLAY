@@ -4,3 +4,4 @@ __pycache__/
 *.npz
 outputs/*.png
 .DS_Store
+outputs/akew_verifier_ckpt/
