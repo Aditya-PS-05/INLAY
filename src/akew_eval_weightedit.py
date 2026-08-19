@@ -94,7 +94,14 @@ random.seed(0)
 if N and N < len(test):
     test = random.sample(test, N)
 
-WISE_ACCUMULATING = (METHOD == "WISE")
+# WISE and GRACE both add a new module (a side-memory layer / a codebook)
+# rather than modifying an existing tensor's VALUES in place, so both change
+# the model's state_dict KEY STRUCTURE and both hit the identical KeyError
+# the WISE fix above describes -- confirmed by running GRACE and hitting the
+# exact same 'transformer.h.N.mlp.fc_out.bias' KeyError. Same accumulating-
+# mode fix applies to both, not just WISE.
+ACCUMULATING_METHODS = ("WISE", "GRACE")
+ACCUMULATING = (METHOD in ACCUMULATING_METHODS)
 
 hits, edit_ok, edit_fail = [], 0, 0
 for c in test:
@@ -107,7 +114,7 @@ for c in test:
             prompts=[prompt], subject=[c.subject], target_new=[" " + str(g.target_new)],
             sequential_edit=True, keep_original_weight=False, verbose=False,
             **({"loc_prompts": [prompt + " " + str(g.target_true or g.target_new)]} if METHOD == "WISE" else {}))
-        if WISE_ACCUMULATING:
+        if ACCUMULATING:
             # EasyEdit's own post-edit metric is the success signal here, since
             # state-dict key diffing doesn't apply once the module structure
             # itself has changed.
@@ -136,7 +143,7 @@ for c in test:
         hits.append(False)
         print(f"EDIT_ERROR {c.edit_id}: {type(e).__name__}: {e}", file=sys.stderr)
     finally:
-        if not WISE_ACCUMULATING:
+        if not ACCUMULATING:
             restore()
 
 n = len(hits)
@@ -147,8 +154,8 @@ if edit_ok == 0:
 out = {"method": METHOD, "model": MODEL_LABEL, "dataset": "CounterFact", "input_mode": "structured",
        "n": n, "edit_ok": edit_ok, "edit_fail": edit_fail,
        "accuracy": round(sum(hits) / n, 4) if n else None}
-if WISE_ACCUMULATING:
-    out["wise_mode"] = "sequential_accumulating"
+if ACCUMULATING:
+    out["accumulating_mode"] = True
 print("<<<JSON>>>")
 print(json.dumps(out))
 print("<<<END>>>")

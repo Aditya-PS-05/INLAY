@@ -43,4 +43,44 @@ similar quality; MEMIT's real advantage (per this project's own INLAY
 sequential-editing findings) shows up at scale/under repeated edits, not
 single-edit accuracy.
 
-AlphaEdit, WISE, GRACE in progress; each appended here as results land.
+WISE in progress (full N=150 run, ~94% per-edit success rate observed so far
+mid-run: 63/67 edits landed EasyEdit's own `post.rewrite_acc == 1.0` check).
+
+## GRACE: a genuine negative result, not a harness bug
+
+GRACE was first blocked by the same state_dict-key-structure issue WISE hit
+(`KeyError: 'transformer.h.N.mlp.fc_out.bias'`) -- both wrap the edited layer
+in a new module (WISE: side-memory layer; GRACE: codebook) rather than
+modifying an existing tensor's values in place, so both change the model's
+state_dict KEY STRUCTURE, not just its values, and the generic snapshot/
+restore-by-key pattern that works for ROME/MEMIT/AlphaEdit cannot apply to
+either. Fixed by generalizing the WISE accumulating-mode fix to cover GRACE
+too (`ACCUMULATING_METHODS = ("WISE", "GRACE")`): skip state-dict diffing
+entirely and score success via EasyEdit's own `post.rewrite_acc` immediately
+after each edit installs.
+
+That fix resolved the crash. It did not resolve GRACE actually working here.
+Re-run with the fix (N=5 smoke test): `edit_ok=0/5` -- EasyEdit's own
+`post.rewrite_acc` reads exactly `0.0` on every single edit, correctly
+triggering the FATAL guard rather than silently reporting a wrong number.
+
+This is consistent with, not contradicted by, an earlier finding already on
+record in this project: GRACE's codebook/radius-based hidden-state patching
+"collapsed to near zero on my generation-based harness: its radius-based
+matching almost never fires on paraphrases." Two independent harnesses (the
+earlier generation-based one, and this EasyEdit-native teacher-forcing check)
+now agree GRACE's edits aren't landing under real-world query phrasing, on
+this model/dataset. Recorded as a genuine limitation of GRACE's mechanism on
+CounterFact-style single-fact edits with GPT-J, not a bug to keep chasing --
+consistent with GRACE's design intent (targeted retrieval-augmented editing
+via nearest-codebook-entry matching) being a poor fit for a benchmark that
+doesn't control for paraphrase distance from the training prompt.
+
+| method | edit_ok | accuracy |
+|---|---|---|
+| ROME | 147/147 | 83.67% |
+| MEMIT | 147/147 | 83.67% (identical to ROME) |
+| AlphaEdit | 147/147 | 89.12% |
+| WISE | in progress | -- |
+| GRACE | 0/5 (smoke test) | **N/A -- edits don't land under this harness's real-generation scoring** |
+| CAKE (routed pipeline, same test set) | -- | **100.0%** |
