@@ -86,6 +86,42 @@ CAKE+IKE beats plain IKE is a dataset where REJECT matters (WikiUpdate,
 which plain IKE/RAG cannot benefit from having no REJECT path at all) --
 not yet run.
 
+## The demonstration boost does NOT transfer to WikiUpdate -- it reverses
+
+Ran the exact same CAKE+IKE-demonstrations comparison on WikiUpdate
+unstructured (n=160), the harder-retrieval dataset. The hoped-for result was
+CAKE+IKE beating plain IKE here specifically, since REJECT should matter on
+a dataset where retrieval fails ~28% of the time. Instead, a different and
+more important finding emerged:
+
+| | accuracy |
+|---|---|
+| CAKE routed, no demonstrations | 43.75% |
+| **CAKE routed + IKE demonstrations** | **40.62%** |
+
+**Demonstrations hurt here, the opposite of CounterFact's +2.05 point gain.**
+Confirmed the drop is entirely attributable to the demonstration mechanism
+itself, not a code bug: REJECT-routed queries (42/160) produce byte-identical
+answers with and without demonstrations by construction (demonstrations only
+apply on the REASON path), so the full ~3-point gap is concentrated in the
+118 REASON-routed queries.
+
+**Honest reading:** this pilot's demonstration selection is random sampling
+from the card pool (`akew_baseline_ike.py`'s own docstring already flags
+this as a scoping simplification, not IKE's real similarity-based selection
+procedure). On CounterFact, where facts are largely independent of each
+other, random demonstrations are harmless noise that still teaches the
+override pattern. On WikiUpdate, whose real-world entities collide far more
+(the same structural property behind its harder retrieval and its unique
+stale-object confusions), a randomly-selected demonstration is more likely
+to introduce genuinely distracting or superficially-similar-but-irrelevant
+context, actively hurting rather than teaching. **The demonstration
+mechanism is not a free win to deploy universally** -- it needs IKE's actual
+similarity-based demonstration selection, not this pilot's random-sampling
+simplification, before it can be trusted on datasets with WikiUpdate's
+collision structure. Recorded as a genuine negative result, not smoothed
+into the earlier positive CounterFact finding.
+
 ## Scope note
 
 This is one dataset/mode comparison (CounterFact unstructured). The weight-
