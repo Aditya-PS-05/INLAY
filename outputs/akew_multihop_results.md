@@ -112,6 +112,26 @@ errors. Worth a targeted look before scaling this test up.
 This result was obtained on the same 80-example sample, same model
 (`Qwen/Qwen2.5-1.5B-Instruct`), same oracle-decomposition scope as the
 original pilot -- the only change was the fallback logic in
-`akew_multihop.py`. Not yet retested at the brief's target model scale
-(GPT-J-6B / Qwen2.5-7B) or on a larger sample; both are natural next steps
-before this number is quotable anywhere formal.
+`akew_multihop.py`.
+
+## Full-sample confirmation (n=354, the entire MQuAKE-CF pool)
+
+Reran on every group in the dataset, not just the 80-example sample, same
+model and oracle-decomposition scope.
+
+| strategy | accuracy (n=80, sample) | accuracy (n=354, full pool) |
+|---|---|---|
+| iterative multihop (with fallback) | 47.5% | **53.95%** |
+| naive single-shot | 22.5% | 16.1% |
+
+The finding holds and the margin widens at full scale (37.85 points, versus
+25 points on the sample) -- not a sampling artifact. The exact same failure
+pair recurs identically: cases 1475 and 1917 both still converge on the
+wrong answer "Gharbia Governorate" against gold "Epworth," both still
+passing through a "founder of a religion" hop -- confirming this is a
+specific, repeatable model confusion about that entity, not noise that
+would wash out with a larger sample.
+
+Not yet retested at the brief's target model scale (GPT-J-6B / Qwen2.5-7B);
+that remains the one natural next step before this number is quotable at
+that scale.
