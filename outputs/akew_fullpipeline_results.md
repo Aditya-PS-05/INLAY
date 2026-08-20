@@ -227,7 +227,62 @@ real accuracy even though retrieval finds the right card almost as often
 (98.64% vs unstructured's 99.32%). The gap is in what's *in* the card, not
 whether the right card gets found.
 
-MQuAKE-CF and WikiUpdate extracted-mode runs in progress; appended below.
+**WikiUpdate extracted (n=150):**
+
+| | accuracy | router decisions | retrieval correctness |
+|---|---|---|---|
+| routed full pipeline | **48.0%** | REJECT 43 / DIRECT 0 / REASON 107 | 68.67% |
+| always-force-REASON | 46.67% | -- | -- |
+
+Same pattern as WikiUpdate unstructured (43.75% vs 43.13%): routed edges out
+always-REASON by declining to answer on the worst retrievals (43/150,
+28.7%, close to unstructured's 26%) rather than hallucinating over them.
+Retrieval correctness (68.67%) is close to unstructured's 71.88% -- as
+expected, since WikiUpdate's difficulty is intrinsic to its entity
+collisions, not specific to how the evidence is packaged. Extracted mode's
+absolute accuracy (48.0%) actually edges out unstructured's 43.75%, the
+opposite direction from CounterFact -- plausible here specifically because
+WikiUpdate's raw evidence prose is itself noisier (real-world text, often
+containing the stale AND current fact in the same passage per the dataset's
+own design), so an LLM-extracted, disambiguated triple can be a cleaner
+signal than the full prose it was extracted from, unlike CounterFact where
+the synthetic evidence is already clean and extraction only strips detail.
+
+**MQuAKE-CF extracted (n=63):**
+
+| | accuracy | router decisions | retrieval correctness |
+|---|---|---|---|
+| routed full pipeline | **69.84%** | REJECT 11 / DIRECT 0 / REASON 52 | 79.37% |
+| always-force-REASON | **85.71%** | -- | -- |
+
+This is the same failure mode already found and diagnosed on MQuAKE-CF
+structured (93.65% routed vs 96.83% always-REASON), and it's WORSE here: a
+15.87-point gap versus structured's 3.18 points. Retrieval correctness
+(79.37%) is even lower than structured's 82.54%, so REJECT fires more often
+(11/63, 17.5%) and each REJECT throws away a retrieval that, imperfect as it
+is, still carries more signal than answering from base-model knowledge
+alone -- exactly the mechanism already diagnosed in the structured-mode
+threshold-sweep experiment above. This is not a new finding so much as
+confirmation that the diagnosis generalizes across modes: **MQuAKE-CF's
+retrieval-reliability regime is low enough, in every mode tested, that the
+router's REJECT/DIRECT gating is net-negative there**, and the fix is
+dataset-level (bypass the gates for this dataset) rather than a
+per-mode or per-threshold patch.
+
+## Extracted-mode summary across all three datasets
+
+| dataset | routed | always-REASON | retrieval correctness | gap direction |
+|---|---|---|---|---|
+| CounterFact | 78.23% | 78.23% (identical) | 98.64% | tied (DIRECT never fires) |
+| WikiUpdate | 48.0% | 46.67% | 68.67% | routed wins (+1.33) |
+| MQuAKE-CF | 69.84% | 85.71% | 79.37% | **routed loses (-15.87)** |
+
+All three datasets now have full pipeline coverage across all three input
+modes (structured, unstructured, extracted) -- the complete 3x3 matrix from
+the original brief. The router's REJECT/DIRECT gating helps or ties on
+CounterFact and WikiUpdate in every mode, and consistently hurts on
+MQuAKE-CF in every mode -- a clean, dataset-level pattern tied to retrieval
+reliability, not a mode-specific artifact.
 
 ## Scope note
 
