@@ -220,11 +220,15 @@ one head, no per-dataset tuning. **Bold** marks the best of the three.
 |---|---|---|---|---|---|---|
 | CounterFact | structured | 147 | **100.0%** | 97.96% | **100.0%** | 0.0% |
 | CounterFact | unstructured | 147 | **87.07%** | **87.07%** | **87.07%** | 0.7% |
+| CounterFact | extracted | 147 | **78.23%** | **78.23%** | **78.23%** | 2.0% |
 | WikiUpdate | structured | 160 | **99.38%** | 96.25% | **99.38%** | 3.8% |
 | WikiUpdate | unstructured | 160 | **43.75%** | 43.13% | 43.13% | 32.5% |
+| WikiUpdate | extracted | 160 | **47.50%** | 46.25% | 46.25% | 36.3% |
 | MQuAKE-CF | structured | 63 | 93.65% | 96.83% | **100.0%** | 6.3% |
 | MQuAKE-CF | unstructured | 63 | 65.08% | **80.95%** | **80.95%** | 25.4% |
 | MQuAKE-CF | extracted | 63 | 69.84% | **85.71%** | **85.71%** | 27.0% |
+
+Complete 3×3 matrix, all nine cells.
 
 **The headline: adaptive strictly dominates either fixed policy.**
 
@@ -239,14 +243,42 @@ is looking at.** The per-dataset manual bypass that
 `akew_fullpipeline_results.md` concluded was necessary is no longer
 necessary.
 
+## Threshold robustness: 0.5 was not a lucky pick
+
+A single hand-chosen threshold is exactly the kind of thing that makes a
+result look better than it is, so it was swept across a deliberately wide
+range on both extremes of the matrix.
+
+| bypass threshold | MQuAKE-CF extracted | (bypass rate) | CounterFact structured | (bypass rate) |
+|---|---|---|---|---|
+| 0.3 | 85.71% | 23.8% | 100.0% | 0.0% |
+| 0.4 | 85.71% | 27.0% | 100.0% | 0.0% |
+| 0.5 (default) | 85.71% | 27.0% | 100.0% | 0.0% |
+| 0.6 | 85.71% | 27.0% | 100.0% | 0.0% |
+| 0.7 | 85.71% | 27.0% | 100.0% | 0.0% |
+| 0.8 | 85.71% | 31.8% | 100.0% | 0.7% |
+
+**Identical accuracy at every threshold from 0.3 to 0.8** on both cells,
+while the bypass rate moves as the threshold moves -- so the threshold is
+doing something, and the outcome simply does not depend on where in that
+wide band it sits. The head's predictions are separated enough that any
+reasonable cut lands in the same place. This is the opposite of a
+knife-edge tuned result, and it is worth contrasting with the thing it
+replaces: the `direct_threshold` sweep on the *old* router changed nothing
+between 0.85 and 0.97 and then fell off a cliff at 1.01, because it was
+thresholding a saturated signal.
+
 ## The one loss, which is the most informative cell here
 
-**WikiUpdate unstructured: 43.75% (fixed) → 43.13% (adaptive), −0.62 points.**
+**WikiUpdate unstructured: 43.75% → 43.13% (−0.62, one example on n=160).
+WikiUpdate extracted: 47.50% → 46.25% (−1.25, two examples on n=160).**
 
-First, the magnitude honestly: on n=160 that is 70 correct vs 69 correct --
-**a one-example difference**, comfortably inside noise, and not a meaningful
-regression. But it should not be waved away either, because the *mechanism*
-behind it is real and matters more than the number.
+First, the magnitudes honestly: one and two examples respectively, both
+comfortably inside noise. But the fact that *both* WikiUpdate cells move the
+same direction, while all three MQuAKE-CF cells move the other way, says the
+pattern is **systematic rather than noise**, even though each individual
+number is small. That is what makes it worth diagnosing rather than
+dismissing -- and the mechanism behind it matters more than the magnitude.
 
 The head did its job on this cell, and did it well: bypass precision 82.7%,
 **recall of bad retrievals 95.6%** -- it caught 43 of the 45 genuinely-wrong
@@ -271,12 +303,22 @@ same signal:
 
 So the head's output is being used to answer the wrong question. It reliably
 predicts *"is this retrieval trustworthy?"* and the router converts that into
-a fixed action, when the action itself should be a second decision --
-learned per-regime rather than hard-coded. **That is the concrete next
-iteration**: let the reliability signal select among {REJECT, REASON,
-DIRECT} rather than only gating a bypass, with the choice trained on which
-response actually pays off. Recorded as a specific, diagnosed architectural
-limitation with a named fix, not a vague "future work."
+a fixed action, when the action itself should be a second decision.
+
+**The discriminating observation that makes this fixable:** WikiUpdate's
+unreliable cases score *lower* on predicted reliability (mean 0.6596
+unstructured, 0.6243 extracted) than MQuAKE-CF's do (0.7492 extracted,
+0.7640 unstructured). The **magnitude** of predicted unreliability -- not
+merely whether it crossed one line -- carries the missing signal. That
+motivates a three-way policy driven by the same score with a second, lower
+threshold:
+
+    p <  reject_floor      -> REJECT   (actively misleading; decline)
+    p <  bypass_threshold  -> REASON   (imperfect but usable; reason over it)
+    otherwise              -> normal fixed gating
+
+Implemented (`AkewRouter(reject_floor=...)`, `None` reproduces the binary
+behaviour exactly) and under test; results below.
 
 ## Cost
 

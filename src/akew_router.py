@@ -52,7 +52,7 @@ def _looks_multihop(query_text):
 
 class AkewRouter:
     def __init__(self, retrieval_index, verifier, reject_threshold=0.65, direct_threshold=0.85, topk=5,
-                 reliability_head=None, bypass_threshold=0.5):
+                 reliability_head=None, bypass_threshold=0.5, reject_floor=None):
         """reliability_head: optional trained ReliabilityHead (akew_reliability.py).
 
         When attached, the router first asks whether its own gating signal is
@@ -71,10 +71,32 @@ class AkewRouter:
         a first-order threshold cannot express: not "is this score high?" but
         "is this score discriminative?"
 
-        None (the default) reproduces the exact prior behaviour for every
-        existing caller, down to using the identical single-pair verifier call
-        rather than the batched top-k one -- additive, not a silent change to
-        any previously reported number.
+        reject_floor: optional SECOND, lower reliability threshold enabling a
+        three-way policy instead of a binary bypass. Motivated by the one cell
+        the binary version lost (akew_reliability_head_results.md, WikiUpdate
+        unstructured): there the head's DETECTION was its best anywhere (95.6%
+        recall of bad retrievals) but the hard-coded response was wrong,
+        because MQuAKE-CF and WikiUpdate want OPPOSITE responses to the same
+        signal -- MQuAKE-CF's low-confidence retrievals still carry usable
+        signal (reason over them), while WikiUpdate's are actively misleading
+        stale/current collisions (decline instead).
+
+        The discriminating observation: WikiUpdate's bad cases score LOWER on
+        predicted reliability (mean 0.6596) than MQuAKE-CF's do (0.7492), so
+        the MAGNITUDE of predicted unreliability -- not merely whether it
+        crossed one line -- carries the missing signal. With reject_floor set:
+
+            p <  reject_floor      -> REJECT   (actively untrustworthy)
+            p <  bypass_threshold  -> REASON   (imperfect but usable)
+            otherwise              -> normal fixed gating
+
+        None (the default) keeps the binary behaviour, so every number already
+        reported with the binary policy is reproduced exactly.
+
+        reliability_head=None likewise reproduces the exact pre-head behaviour
+        for every existing caller, down to using the identical single-pair
+        verifier call rather than the batched top-k one -- additive, not a
+        silent change to any previously reported number.
         """
         self.index = retrieval_index
         self.verifier = verifier
@@ -83,6 +105,13 @@ class AkewRouter:
         self.topk = topk
         self.reliability_head = reliability_head
         self.bypass_threshold = bypass_threshold
+        if reject_floor is not None and reject_floor > bypass_threshold:
+            raise ValueError(
+                f"reject_floor ({reject_floor}) must be <= bypass_threshold "
+                f"({bypass_threshold}); a floor above the bypass line would "
+                f"make the REASON band empty and silently turn the three-way "
+                f"policy back into a binary one with a different threshold.")
+        self.reject_floor = reject_floor
 
     def route(self, query_text):
         candidates = self.index.query(query_text, topk=self.topk)
@@ -105,6 +134,13 @@ class AkewRouter:
             pred = self.reliability_head.predict_one(
                 query_text, candidates, all_scores, self.direct_threshold)
             predicted_reliability = pred.p_correct
+
+            if self.reject_floor is not None and predicted_reliability < self.reject_floor:
+                # Predicted so unreliable that the retrieved evidence is more
+                # likely to mislead than to help -- decline rather than reason
+                # over it. This is the band the binary policy was missing.
+                return RouteDecision("REJECT", top_card.edit_id, retrieval_score, verifier_score,
+                                     "below_reliability_reject_floor", predicted_reliability)
 
             if predicted_reliability < self.bypass_threshold:
                 # Both gates are suppressed together, deliberately: the

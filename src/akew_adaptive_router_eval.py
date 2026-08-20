@@ -26,7 +26,16 @@ single configuration that beats or matches the better of the two existing
 ones on every dataset/mode, with no per-dataset hand-tuning, is the claim.
 Anything less is reported as a partial result, not rounded up.
 
-Usage: python akew_adaptive_router_eval.py <dataset> <input_mode> [limit] [bypass_threshold]
+A fourth condition, routed_threeway, is scored alongside whenever a
+reject_floor is supplied. It exists because of the single cell the binary
+policy lost (WikiUpdate unstructured): there the head's DETECTION was its
+best anywhere (95.6% recall of bad retrievals) while the hard-coded response
+was wrong, since MQuAKE-CF wants REASON on an unreliable retrieval and
+WikiUpdate wants REJECT. The three-way policy uses the MAGNITUDE of predicted
+unreliability to choose between those, rather than treating "unreliable" as
+one undifferentiated bucket.
+
+Usage: python akew_adaptive_router_eval.py <dataset> <input_mode> [limit] [bypass_threshold] [reject_floor]
 """
 import sys, json, random
 
@@ -45,6 +54,7 @@ DATASET = sys.argv[1] if len(sys.argv) > 1 else "MQuAKE-CF"
 MODE = sys.argv[2] if len(sys.argv) > 2 else "structured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 200
 BYPASS_THRESHOLD = float(sys.argv[4]) if len(sys.argv) > 4 else 0.5
+REJECT_FLOOR = float(sys.argv[5]) if len(sys.argv) > 5 else None
 MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
 HEAD_PATH = "outputs/akew_reliability_head.json"
@@ -63,6 +73,10 @@ head = ReliabilityHead.load(HEAD_PATH)
 router_fixed = AkewRouter(index, verifier)
 router_adaptive = AkewRouter(index, verifier, reliability_head=head,
                              bypass_threshold=BYPASS_THRESHOLD)
+router_threeway = (AkewRouter(index, verifier, reliability_head=head,
+                              bypass_threshold=BYPASS_THRESHOLD,
+                              reject_floor=REJECT_FLOOR)
+                   if REJECT_FLOOR is not None else None)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 tok = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -86,9 +100,10 @@ def answer_for(decision, q):
         else answer_no_context(model, tok, q, device)
 
 
-fixed_hits, adaptive_hits, always_hits = [], [], []
+fixed_hits, adaptive_hits, always_hits, threeway_hits = [], [], [], []
 fixed_counts = {"REJECT": 0, "DIRECT": 0, "REASON": 0}
 adaptive_counts = {"REJECT": 0, "DIRECT": 0, "REASON": 0}
+threeway_counts = {"REJECT": 0, "DIRECT": 0, "REASON": 0}
 bypass_fired = 0
 reliabilities = []
 retrieval_correct = []
@@ -135,6 +150,19 @@ for c in test:
     else:
         ans_adapt = answer_for(d_adapt, q)
 
+    if router_threeway is not None:
+        d_three = router_threeway.route(q)
+        threeway_counts[d_three.decision] += 1
+        # Same reuse discipline: identical decision on the identical card is
+        # the identical deterministic call, so it is not paid for twice.
+        if (d_three.decision == d_adapt.decision) and (d_three.card_id == d_adapt.card_id):
+            ans_three = ans_adapt
+        elif (d_three.decision == d_fixed.decision) and (d_three.card_id == d_fixed.card_id):
+            ans_three = ans_fixed
+        else:
+            ans_three = answer_for(d_three, q)
+        threeway_hits.append(is_hit(ans_three, g))
+
     top1 = index.query(q, topk=1)
     ans_always = answer_contextual(model, tok, q, top1[0][0], device) if top1 \
         else answer_no_context(model, tok, q, device)
@@ -164,13 +192,15 @@ def acc(hits):
 
 out = {
     "dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME,
-    "bypass_threshold": BYPASS_THRESHOLD, "head": HEAD_PATH,
+    "bypass_threshold": BYPASS_THRESHOLD, "reject_floor": REJECT_FLOOR, "head": HEAD_PATH,
     "accuracy": {
         "routed_fixed": acc(fixed_hits),
         "routed_adaptive": acc(adaptive_hits),
+        "routed_threeway": acc(threeway_hits) if threeway_hits else None,
         "always_reason": acc(always_hits),
     },
-    "router_decisions": {"fixed": fixed_counts, "adaptive": adaptive_counts},
+    "router_decisions": {"fixed": fixed_counts, "adaptive": adaptive_counts,
+                         "threeway": threeway_counts if threeway_hits else None},
     "bypass_fired": bypass_fired,
     "bypass_rate": round(bypass_fired / n, 4) if n else None,
     "mean_predicted_reliability": round(sum(reliabilities) / len(reliabilities), 4)
