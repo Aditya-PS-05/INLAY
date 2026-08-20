@@ -196,10 +196,44 @@ a genuinely different, more decisive conclusion than the original "recover
 the gap with a stricter DIRECT threshold" hypothesis, reached by actually
 testing it rather than assuming the fix would work once identified.
 
+## Extracted mode: the third of AKEW's three input conditions, closing the gap
+
+Every result above covers structured and unstructured mode. Extracted mode
+(LLM-extracted triples, rather than a clean structured prompt/target pair or
+raw evidence prose) had never been run through the full pipeline. Closing
+that gap, same setup (real retrieval, v2 verifier, live router).
+
+**CounterFact extracted (n=147):**
+
+| | accuracy | router decisions | retrieval correctness |
+|---|---|---|---|
+| routed full pipeline | **78.23%** | REJECT 3 / DIRECT 0 / REASON 144 | 98.64% |
+| always-force-REASON | 78.23% (identical) | -- | -- |
+
+Routed and always-REASON are identical here for the same structural reason
+as unstructured CounterFact: DIRECT never fires (0/147) on extracted-mode
+cards. This makes sense architecturally -- `answer_hard_playback`'s
+structured-mode literal-recitation path requires `input_mode == "structured"`
+specifically, and extracted triples, despite being more structured than raw
+prose, are not the clean canonical `(prompt, target)` pairs DIRECT is built
+to recite. The router correctly treats extracted mode like unstructured
+mode: retrieval quality is high (98.64%) but the router never over-trusts it
+into a literal-playback shortcut it can't actually make good on.
+
+78.23% sits below unstructured CounterFact's 87.07% -- extraction noise
+(an LLM-extracted triple is a lossier, sometimes-wrong summary of the
+underlying evidence, unlike raw prose which preserves everything) costs
+real accuracy even though retrieval finds the right card almost as often
+(98.64% vs unstructured's 99.32%). The gap is in what's *in* the card, not
+whether the right card gets found.
+
+MQuAKE-CF and WikiUpdate extracted-mode runs in progress; appended below.
+
 ## Scope note
 
 Weight-editing baselines (ROME/MEMIT/AlphaEdit/WISE/GRACE) and MeLLo remain
 out of scope for the reasons already stated (a separate multi-day harness-
-engineering phase). Unstructured/extracted mode tests on MQuAKE-CF, and
-testing whether IKE's demonstration boost holds up under WikiUpdate-style
-retrieval uncertainty, are the remaining natural extensions.
+engineering phase, itself now completed -- see
+`akew_weightedit_baseline_results.md`). Testing whether IKE's demonstration
+boost holds up under WikiUpdate-style retrieval uncertainty is the one
+remaining natural extension not yet run.
