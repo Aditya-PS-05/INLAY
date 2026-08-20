@@ -37,7 +37,7 @@ one undifferentiated bucket.
 
 Usage: python akew_adaptive_router_eval.py <dataset> <input_mode> [limit] [bypass_threshold] [reject_floor]
 """
-import sys, json, random
+import sys, os, json, random
 
 sys.path.insert(0, "src")
 from akew_data import load_akew
@@ -55,7 +55,12 @@ MODE = sys.argv[2] if len(sys.argv) > 2 else "structured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 200
 BYPASS_THRESHOLD = float(sys.argv[4]) if len(sys.argv) > 4 else 0.5
 REJECT_FLOOR = float(sys.argv[5]) if len(sys.argv) > 5 else None
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+# Overridable so the head can be validated at the project's 7B scale without
+# a second script. The head itself predicts RETRIEVAL correctness, which does
+# not depend on the generator at all -- so the head transfers unchanged and
+# only the downstream answering accuracy should move. That is a clean,
+# falsifiable prediction, and the 7B run below is what tests it.
+MODEL_NAME = os.environ.get("AKEW_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
 HEAD_PATH = "outputs/akew_reliability_head.json"
 
@@ -218,6 +223,18 @@ out = {
         "recall_of_bad_retrievals": round(
             bypass_and_retrieval_wrong / (bypass_and_retrieval_wrong + nobypass_and_retrieval_wrong), 4)
         if (bypass_and_retrieval_wrong + nobypass_and_retrieval_wrong) else None,
+    },
+    # Per-example hit vectors, so the comparative claims can be tested with a
+    # PAIRED test rather than by eyeballing two aggregate percentages. Every
+    # condition is scored on the identical queries in the same pass, so the
+    # pairing is real and McNemar/paired-bootstrap are the right tools --
+    # an unpaired comparison of two accuracies computed on the same items
+    # would understate significance and is simply the wrong test.
+    "per_example_hits": {
+        "fixed": [int(h) for h in fixed_hits],
+        "adaptive": [int(h) for h in adaptive_hits],
+        "always_reason": [int(h) for h in always_hits],
+        "threeway": [int(h) for h in threeway_hits] if threeway_hits else None,
     },
     "sample_examples": examples_log,
 }
