@@ -483,16 +483,60 @@ three-way REJECT 50 of 160), and the model identity is recorded as
 a genuine coincidence of aggregate accuracy over different routing, not a
 config error.
 
-**Hypothesis, explicitly untested:** WikiUpdate's defining property is
-stale-vs-current entity collision (its edits concern real-world facts whose
-previous value the model has also seen). A larger model has stronger
-parametric priors over exactly those real-world entities, so it may override
-the injected edit with what it already "knows" more often than the smaller
-model does -- larger models resisting edits more is a documented effect. That
-predicts the degradation should concentrate on collision cases rather than
-spread uniformly, which is directly checkable by segmenting the 7B failures
-by whether the gold answer conflicts with a well-known prior value. Not run;
-recorded as the specific next diagnostic rather than asserted as the cause.
+### Hypothesis 1 — parametric-prior conflict — TESTED AND REFUTED
+
+The proposed account was: WikiUpdate's edits concern real-world facts whose
+*previous* value the model also saw in pretraining, so a larger model's
+stronger priors make it override the injected edit more often.
+
+Operationalised without circularity (`akew_prior_conflict_diag.py`): ask the
+model the eval question with **no context at all**; if it spontaneously
+produces `target_true`, it demonstrably holds that prior. Prior labels are
+computed *per model*, since the hypothesis is precisely that the larger model
+holds more of them. Confirm/refute criteria were written into the script
+before it was run.
+
+| WikiUpdate unstructured | 1.5B | 7B |
+|---|---|---|
+| strong-prior rate | 3.75% (6/160) | 5.63% (9/160) |
+| accuracy, strong-prior subset | 83.33% | 33.33% |
+| accuracy, no-prior subset | 41.56% | 39.74% |
+| **reverted to pre-edit value** | **2.50%** | **1.87%** |
+| retrieval correctness | 71.88% | 71.88% |
+
+**Refuted on two of its three criteria:**
+
+1. **The revert rate went DOWN** (2.50% → 1.87%). Reverting to the prior *is*
+   the proposed mechanism; the larger model does it *less*. This alone is
+   decisive.
+2. **The loss sits in the no-prior subset.** Of ~6 net examples lost, roughly
+   4 come from the no-strong-prior group (94% of the data) and ~2 from the
+   strong-prior group. It is not concentrated where the account requires.
+3. The strong-prior rate does rise (6 → 9 examples), but both are tiny and
+   cannot carry a 6-example swing.
+
+**The CounterFact control settles it.** CounterFact at 7B has **four times**
+WikiUpdate's strong-prior rate (23.81% vs 5.63%) and *improves* at 7B — and
+its strong-prior subset scores **higher** than its no-prior subset (91.43% vs
+88.39%). Across both datasets and both scales, holding a strong prior tracks
+*better* accuracy, not worse. The collision account is wrong.
+
+### Hypothesis 2 — hedging on weak evidence — suggested by the refutation
+
+The refutation is informative rather than merely negative. At 7B the model is
+**not** answering the old value (it reverts less), so it is failing some other
+way, and the failures sit where it has no prior to fall back on.
+
+The relevant observation already on record in this project: the 7B model
+hedges on weak evidence rather than committing ("Based on the given evidence,
+we cannot determine who the head of state...", `akew_multihop_results.md`).
+WikiUpdate has ~28% wrong retrievals to hedge about; CounterFact has ~1% --
+which would explain why the degradation is dataset-specific, the fact that
+made Hypothesis 1 attractive in the first place.
+
+Being tested now (`akew_hedge_diag.py`), again with criteria fixed in advance:
+confirmation requires more hedging at 7B, *concentrated on wrong-retrieval
+examples*, with a much smaller gap on the CounterFact control. Results below.
 
 **The +15.87-point gain on MQuAKE-CF extracted is identical at both scales.**
 Not merely similar -- identical, because the improvement comes entirely from
