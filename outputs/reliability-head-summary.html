@@ -565,6 +565,29 @@
         architectural.
       </li>
     </ul>
+
+    <h3>An open anomaly we don't explain <span class="chip refuted">Unresolved</span></h3>
+    <div class="note warn">
+      <p>
+        On WikiUpdate unstructured, all three conditions converge to exactly
+        <span class="fig">39.37%</span> at 7B &mdash; but they converge
+        <em>downward</em>. That cell is <strong>4.38 points worse at 7B than at
+        1.5B</strong> for fixed, adaptive, and always-reason alike.
+      </p>
+    </div>
+    <p>
+      It's dataset-specific, not general scale noise: CounterFact unstructured
+      improves over the same jump <span class="fig">(87.07% &rarr; 89.12%)</span>.
+      The run is valid &mdash; routing genuinely differs across conditions
+      <span class="fig">(REJECT 42 / 0 / 50 of 160)</span>, so the matching
+      accuracies are coincidence over different routing, not a collapsed config.
+      The reliability head neither causes nor fixes this; it's visible in the
+      fixed baseline too. A plausible but <em>untested</em> account: WikiUpdate's
+      stale-vs-current entity collisions interact with a larger model's stronger
+      priors over those same real-world entities, making injected edits harder to
+      enforce. That predicts the damage concentrates on collision cases &mdash;
+      checkable, not yet checked.
+    </p>
   </section>
 
   <section>

@@ -456,15 +456,43 @@ assumed from the launch environment):
 | CounterFact structured | fixed / adaptive | 100.0% | 100.0% |
 | WikiUpdate unstructured | fixed | 43.75% | 39.37% |
 | | **adaptive** | 43.13% | **39.37%** |
+| | always-REASON | 43.13% | 39.37% |
 
-**The WikiUpdate "loss" disappears entirely at 7B**: fixed, adaptive, and
-always-REASON all land on exactly 39.37%, with adaptive tying fixed rather
-than trailing it. This is independent corroboration of the statistical
-finding above -- the 1.5B gap was one example and not distinguishable from
-zero, and at a different scale it is not there at all. Taken together, the
-paired test and the scale check agree that there is no WikiUpdate regression
-to explain, which is also why the three-way policy built to fix it had
-nothing to gain and duly lost.
+At 7B the adaptive-vs-fixed gap on WikiUpdate unstructured is gone: all three
+conditions land on exactly 39.37%. That is consistent with the paired test
+above finding the 1.5B gap indistinguishable from zero.
+
+**But the gap closed DOWNWARD, and that must not be read as good news.**
+An earlier version of this section reported only that "the loss disappears at
+7B," which was misleading by omission: WikiUpdate unstructured is **4.38
+points WORSE at 7B than at 1.5B for every condition**, and the conditions
+converge because they all degraded, not because any improved. Correcting that
+framing here rather than leaving a favourable-sounding half-truth in place.
+
+**This is a real, dataset-specific scale degradation and it needs
+explaining, not burying.** It is not general noise: CounterFact unstructured
+moves the expected direction over the same scale jump (87.07% -> 89.12%,
+`akew_fullpipeline_results.md`). Something about WikiUpdate specifically gets
+harder for the larger model.
+
+Run validity was checked before drawing any conclusion, since three identical
+numbers is exactly what a collapsed configuration looks like: routing genuinely
+differed between the conditions (fixed REJECT 42 / adaptive REJECT 0 /
+three-way REJECT 50 of 160), and the model identity is recorded as
+`Qwen/Qwen2.5-7B-Instruct` in the run output. All three arriving at 63/160 is
+a genuine coincidence of aggregate accuracy over different routing, not a
+config error.
+
+**Hypothesis, explicitly untested:** WikiUpdate's defining property is
+stale-vs-current entity collision (its edits concern real-world facts whose
+previous value the model has also seen). A larger model has stronger
+parametric priors over exactly those real-world entities, so it may override
+the injected edit with what it already "knows" more often than the smaller
+model does -- larger models resisting edits more is a documented effect. That
+predicts the degradation should concentrate on collision cases rather than
+spread uniformly, which is directly checkable by segmenting the 7B failures
+by whether the gold answer conflicts with a well-known prior value. Not run;
+recorded as the specific next diagnostic rather than asserted as the cause.
 
 **The +15.87-point gain on MQuAKE-CF extracted is identical at both scales.**
 Not merely similar -- identical, because the improvement comes entirely from

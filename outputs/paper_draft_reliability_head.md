@@ -241,10 +241,24 @@ sit on a knife edge.
 **Scale.** The +15.87-point gain on MQuAKE-CF extracted is *identical* at
 1.5B and 7B. The router's inputs are generator-independent, so the mechanism
 is architectural; the 7B run tests that reasoning rather than searching for a
-trend. On WikiUpdate unstructured — the only cell where adaptive trailed at
-1.5B — fixed, adaptive, and always-REASON all reach exactly 39.37% at 7B,
-independently corroborating the paired test's finding that the 1.5B gap was
-not distinguishable from zero.
+trend.
+
+**A scale anomaly we do not explain.** On WikiUpdate unstructured, all three
+conditions converge to exactly 39.37% at 7B — consistent with the paired test
+finding no real gap at 1.5B, but they converge *downward*: the cell is 4.38
+points **worse** at 7B than at 1.5B for every condition. This is
+dataset-specific rather than general, since CounterFact unstructured improves
+over the same scale jump (87.07% → 89.12%). We verified the run is valid
+(routing genuinely differs across conditions — REJECT counts 42/0/50 of 160 —
+and the model identity is recorded in the run output), so the identical
+accuracies are coincidence over different routing rather than a collapsed
+configuration. We flag this as an open anomaly rather than assimilating it to
+the method's story: our reliability head neither causes nor addresses it, and
+it is visible in the fixed baseline too. A plausible but untested account is
+that WikiUpdate's stale-vs-current entity collisions interact with a larger
+model's stronger parametric priors over the same real-world entities, making
+injected edits harder to enforce — which predicts the degradation should
+concentrate on collision cases, a directly checkable claim we have not run.
 
 **Cost.** k cross-encoder calls per query instead of 1 (k=5), plus a
 negligible dot product. Cheap relative to the generation call that follows,
