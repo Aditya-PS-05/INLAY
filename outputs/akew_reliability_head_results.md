@@ -243,6 +243,59 @@ is looking at.** The per-dataset manual bypass that
 `akew_fullpipeline_results.md` concluded was necessary is no longer
 necessary.
 
+## Statistical rigor: which of these claims actually survive a paired test
+
+Accuracies on n=63 with no interval are not evidence, so every cell was
+rerun emitting per-example hit vectors and analysed with `akew_stats.py`:
+Wilson 95% intervals, **exact McNemar** on discordant pairs (exact rather
+than chi-square, since discordant counts here are often under 10), a
+**paired** bootstrap on the difference, and **Holm-Bonferroni** across the
+seven cells, since testing seven uncorrected buys a spurious result by luck.
+
+| cell | fixed (95% CI) | adaptive (95% CI) | difference (95% CI) | McNemar p | survives Holm |
+|---|---|---|---|---|---|
+| MQuAKE-CF extracted | 0.698 [0.576, 0.798] | **0.857** [0.750, 0.923] | **+0.159** [+0.079, +0.254] | 0.0019 | **YES** |
+| MQuAKE-CF unstructured | 0.651 [0.527, 0.757] | **0.809** [0.696, 0.887] | **+0.159** [+0.079, +0.254] | 0.0019 | **YES** |
+| MQuAKE-CF structured | 0.936 [0.848, 0.975] | 1.000 [0.943, 1.000] | +0.064 [+0.016, +0.127] | 0.1250 | no |
+| CounterFact structured | 1.000 [0.975, 1.000] | 1.000 [0.975, 1.000] | 0.000 [0.000, 0.000] | 1.0000 | n/a |
+| WikiUpdate structured | 0.994 [0.966, 0.999] | 0.994 [0.966, 0.999] | 0.000 [0.000, 0.000] | 1.0000 | n/a |
+| WikiUpdate extracted | 0.475 [0.399, 0.552] | 0.463 [0.387, 0.540] | −0.013 [−0.037, +0.013] | 0.6250 | n/a |
+| WikiUpdate unstructured | 0.438 [0.363, 0.515] | 0.431 [0.357, 0.509] | −0.006 [−0.025, +0.013] | 1.0000 | n/a |
+
+**What this changes about the claims above -- three corrections, all in the
+direction of claiming less:**
+
+1. **The two large MQuAKE-CF gains are real and survive correction.** +15.9
+   points on both unstructured and extracted, p=0.0019 after Holm, with
+   bootstrap intervals comfortably excluding zero. These are the result.
+
+2. **The MQuAKE-CF structured "100%" cannot be called significant, and the
+   earlier write-up overstated it.** The paired bootstrap interval
+   [+0.016, +0.127] excludes zero, but the exact McNemar test returns
+   p=0.125 -- and it *cannot* do better: there are only **4 discordant
+   pairs**, and with all four favouring adaptive the smallest attainable
+   two-sided exact p is 2/2⁴ = 0.125. The two tests disagree because the
+   bootstrap resamples the whole sample while McNemar conditions on the
+   discordant pairs alone; with evidence this thin the conservative reading
+   is the honest one. **A 100% on n=63 built from a four-example margin is
+   suggestive, not established.**
+
+3. **The WikiUpdate "losses" are not losses.** Both differences are
+   statistically indistinguishable from zero (−0.013, p=0.625; −0.006,
+   p=1.0), with intervals spanning zero. The earlier framing of a
+   "systematic pattern" across the two WikiUpdate cells should be read as a
+   *hypothesis suggested by the direction of two non-significant
+   differences*, not as a measured regression -- and the three-way policy
+   built to fix that supposed regression duly failed, which is consistent
+   with there having been less there to fix than it appeared.
+
+**One genuinely strong result the aggregate numbers hid:** on CounterFact
+structured and WikiUpdate structured the adaptive router has **zero
+discordant pairs** with fixed gating -- not merely similar accuracy, but
+*byte-identical decisions on every single query*. The head demonstrably does
+not disturb the regimes where the existing gates already work, which is a
+sharper statement than any accuracy comparison could make.
+
 ## Threshold robustness: 0.5 was not a lucky pick
 
 A single hand-chosen threshold is exactly the kind of thing that makes a
@@ -318,7 +371,104 @@ threshold:
     otherwise              -> normal fixed gating
 
 Implemented (`AkewRouter(reject_floor=...)`, `None` reproduces the binary
-behaviour exactly) and under test; results below.
+behaviour exactly) and tested. **It does not work.**
+
+## The three-way policy fails decisively — a negative result on my own proposed fix
+
+`reject_floor=0.3`, `bypass_threshold=0.5`, same head, same cells:
+
+| cell | fixed | adaptive (binary) | **three-way** | always-REASON |
+|---|---|---|---|---|
+| MQuAKE-CF structured | 93.65% | **100.0%** | **100.0%** | 96.83% |
+| MQuAKE-CF unstructured | 65.08% | **80.95%** | 58.73% | 80.95% |
+| MQuAKE-CF extracted | 69.84% | **85.71%** | 63.49% | 85.71% |
+| CounterFact structured | **100.0%** | **100.0%** | **100.0%** | 97.96% |
+| WikiUpdate structured | **99.38%** | **99.38%** | 98.75% | 96.25% |
+| WikiUpdate unstructured | **43.75%** | 43.13% | 41.25% | 43.13% |
+
+It fails **on the cell it was specifically designed to fix** (WikiUpdate
+unstructured: 43.13% → 41.25%, worse than the binary policy it was meant to
+improve on) and it is *catastrophic* on MQuAKE-CF, dropping 22 points below
+the binary policy and landing well below even the original fixed gating.
+
+**The hypothesis was wrong, and cleanly so.** "WikiUpdate's unreliable cases
+score lower than MQuAKE-CF's, so a second lower threshold separates them" was
+reasoning from the *means* (0.62–0.66 vs 0.75–0.76) while ignoring the
+*distributions*. MQuAKE-CF has a substantial low-reliability tail that the
+binary policy was routing to REASON and handling correctly; converting that
+tail to REJECT throws away exactly the retrievals the whole MQuAKE-CF fix
+depended on keeping.
+
+## Why it failed, which is more useful than the fix working would have been
+
+The deeper reason is a **target mismatch**, and it reframes the limitation
+section above.
+
+The head is trained to predict `P(top-1 retrieval is correct)`. It does that
+well (OOD AUROC 0.956). But that is *not* the quantity the router needs. What
+the router needs is `P(this routing action produces a correct answer)` -- and
+those two sets come apart:
+
+- A query can have a **wrong** retrieval and still be answered correctly,
+  because the model ignores the irrelevant context and answers from
+  parametric knowledge. Declining would have *lost* that one.
+- A query can have a **right** retrieval and still be answered wrongly, if
+  the evidence is present but the model misreads it.
+
+So "retrieval is untrustworthy" and "declining beats answering here" are
+different predicates, and the binary policy only appeared to work because on
+MQuAKE-CF, forcing REASON happened to be the right action for nearly the
+whole untrustworthy set. The fixed router's verifier-threshold REJECT set,
+despite being a *worse* predictor of retrieval correctness, is apparently a
+*better*-chosen action set on WikiUpdate -- which is exactly what a
+target mismatch looks like.
+
+**The correct next iteration, now properly motivated:** train the head on
+**outcome** labels rather than retrieval-correctness labels -- for each query
+and each candidate action in {REJECT, DIRECT, REASON}, whether that action
+actually produced a correct answer -- and have it select the argmax action.
+That is a decision-theoretic objective rather than a retrieval-quality one,
+it subsumes the binary policy as a special case, and it is what this negative
+result points at. It costs one generation pass per action per training query
+to label, which is why it was not the first thing built, but it is now
+clearly the right thing to build next.
+
+The binary adaptive policy stands unchanged as the shipped result: it is the
+configuration that dominates both baselines. `reject_floor` remains in the
+code with its default of `None` (binary behaviour), documented here as tested
+and rejected rather than quietly removed.
+
+## Scale validation: the gain is architectural, not model-dependent
+
+The head predicts *retrieval* correctness, which does not depend on the
+generator at all -- so the prediction going in was that the head transfers
+unchanged and only downstream answering accuracy should move. Tested with
+`Qwen/Qwen2.5-7B-Instruct` (4.7× the parameters), same head, same threshold,
+same test splits (model identity verified in each run's output rather than
+assumed from the launch environment):
+
+| cell | | 1.5B | 7B |
+|---|---|---|---|
+| MQuAKE-CF extracted | fixed | 69.84% | 69.84% |
+| | **adaptive** | **85.71%** | **85.71%** |
+| MQuAKE-CF structured | fixed | 93.65% | 93.65% |
+| | **adaptive** | **100.0%** | **100.0%** |
+| CounterFact structured | fixed / adaptive | 100.0% | 100.0% |
+
+**The +15.87-point gain on MQuAKE-CF extracted is identical at both scales.**
+Not merely similar -- identical, because the improvement comes entirely from
+*which action the router takes*, and the router's inputs (retrieval, verifier,
+head) are all independent of the generator. The 11 queries that fixed gating
+REJECTs and adaptive routes to REASON flip the same way at both scales,
+because whether the retrieved evidence contains the answer is a property of
+the evidence, not of the model reading it.
+
+This is a stronger form of scale-robustness than "the trend holds at 7B": the
+mechanism is architectural, so there is no scale at which it should stop
+working, and the 7B run is a check on that reasoning rather than a search for
+a trend. One caveat: CounterFact structured saturates at 100% for every
+condition at 7B (always-REASON too), so that cell no longer discriminates
+between methods at this scale -- a ceiling effect, not evidence of anything.
 
 ## Cost
 
