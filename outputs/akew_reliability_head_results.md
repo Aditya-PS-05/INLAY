@@ -454,6 +454,17 @@ assumed from the launch environment):
 | MQuAKE-CF structured | fixed | 93.65% | 93.65% |
 | | **adaptive** | **100.0%** | **100.0%** |
 | CounterFact structured | fixed / adaptive | 100.0% | 100.0% |
+| WikiUpdate unstructured | fixed | 43.75% | 39.37% |
+| | **adaptive** | 43.13% | **39.37%** |
+
+**The WikiUpdate "loss" disappears entirely at 7B**: fixed, adaptive, and
+always-REASON all land on exactly 39.37%, with adaptive tying fixed rather
+than trailing it. This is independent corroboration of the statistical
+finding above -- the 1.5B gap was one example and not distinguishable from
+zero, and at a different scale it is not there at all. Taken together, the
+paired test and the scale check agree that there is no WikiUpdate regression
+to explain, which is also why the three-way policy built to fix it had
+nothing to gain and duly lost.
 
 **The +15.87-point gain on MQuAKE-CF extracted is identical at both scales.**
 Not merely similar -- identical, because the improvement comes entirely from

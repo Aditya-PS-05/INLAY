@@ -1,0 +1,638 @@
+<title>Discriminative Confidence Routing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f8f9;
+    --surface:    #ffffff;
+    --ink:        #16181d;
+    --muted:      #5c636e;
+    --faint:      #878e99;
+    --rule:       #dfe3e7;
+    --rule-soft:  #ecEfF1;
+    --accent:     #0f6e6e;
+    --accent-dim: #e2efee;
+    --positive:   #14634a;
+    --positive-bg:#e3f0ea;
+    --null:       #6b7280;
+    --null-bg:    #eceef1;
+    --refuted:    #9a3412;
+    --refuted-bg: #f7e9e2;
+
+    --measure: 68ch;
+    --s1: .35rem; --s2: .7rem; --s3: 1.1rem; --s4: 1.7rem;
+    --s5: 2.6rem; --s6: 4rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #101317;
+      --surface:    #161a1f;
+      --ink:        #e8eaed;
+      --muted:      #a2aab5;
+      --faint:      #78818d;
+      --rule:       #2a3038;
+      --rule-soft:  #21262c;
+      --accent:     #4fb3ac;
+      --accent-dim: #16302f;
+      --positive:   #5cbb95;
+      --positive-bg:#122c24;
+      --null:       #98a1ad;
+      --null-bg:    #22272d;
+      --refuted:    #e08a5f;
+      --refuted-bg: #2e1d15;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #101317;
+    --surface:    #161a1f;
+    --ink:        #e8eaed;
+    --muted:      #a2aab5;
+    --faint:      #78818d;
+    --rule:       #2a3038;
+    --rule-soft:  #21262c;
+    --accent:     #4fb3ac;
+    --accent-dim: #16302f;
+    --positive:   #5cbb95;
+    --positive-bg:#122c24;
+    --null:       #98a1ad;
+    --null-bg:    #22272d;
+    --refuted:    #e08a5f;
+    --refuted-bg: #2e1d15;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: var(--s6) var(--s4) var(--s6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s5);
+  }
+
+  h1, h2, h3, .eyebrow, .chip, th, .num, code {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+  }
+
+  .eyebrow {
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 var(--s2);
+  }
+
+  h1 {
+    font-size: clamp(1.85rem, 4.4vw, 2.5rem);
+    line-height: 1.14;
+    font-weight: 600;
+    letter-spacing: -.021em;
+    margin: 0 0 var(--s3);
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-size: 1.16rem;
+    font-weight: 600;
+    letter-spacing: -.011em;
+    margin: 0 0 var(--s3);
+    padding-bottom: var(--s2);
+    border-bottom: 1px solid var(--rule);
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: .93rem;
+    font-weight: 600;
+    margin: 0 0 var(--s2);
+    color: var(--ink);
+  }
+
+  p { margin: 0 0 var(--s3); }
+  p:last-child { margin-bottom: 0; }
+
+  section { display: block; }
+
+  .lede {
+    font-size: 1.09rem;
+    color: var(--muted);
+    line-height: 1.56;
+  }
+
+  strong { font-weight: 600; color: var(--ink); }
+  em { font-style: italic; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .84em;
+    background: var(--rule-soft);
+    padding: .1em .35em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  /* ---- stat band ---- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .stat {
+    background: var(--surface);
+    padding: var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+  }
+  .stat .num {
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat .lbl {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: .76rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ---- tables ---- */
+  .tscroll {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: .82rem;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    font-size: .69rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: var(--s2) var(--s3);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  td {
+    padding: var(--s2) var(--s3);
+    border-bottom: 1px solid var(--rule-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.name { font-weight: 500; white-space: normal; min-width: 11rem; }
+  td.win { color: var(--positive); font-weight: 600; }
+  .fig { font-family: "IBM Plex Mono", monospace; }
+  .ci { color: var(--faint); font-size: .93em; }
+
+  .chip {
+    display: inline-block;
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .2em .5em;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.sig     { background: var(--positive-bg); color: var(--positive); }
+  .chip.null    { background: var(--null-bg);     color: var(--null); }
+  .chip.same    { background: var(--accent-dim);  color: var(--accent); }
+  .chip.refuted { background: var(--refuted-bg);  color: var(--refuted); }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 2px solid var(--accent);
+    padding: 0 0 0 var(--s3);
+    color: var(--muted);
+  }
+  .note.warn { border-left-color: var(--refuted); }
+  .note p:last-child { margin-bottom: 0; }
+
+  figure { margin: 0; }
+  figcaption {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: .77rem;
+    color: var(--muted);
+    margin-top: var(--s2);
+    line-height: 1.45;
+  }
+  svg { max-width: 100%; height: auto; display: block; }
+
+  ul { margin: 0 0 var(--s3); padding-left: 1.15rem; }
+  li { margin-bottom: var(--s2); }
+  li:last-child { margin-bottom: 0; }
+
+  .kv {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: .87rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--s2) var(--s3);
+    align-items: baseline;
+  }
+  .kv dt { color: var(--muted); white-space: nowrap; }
+  .kv dd { margin: 0; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s3);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: .8rem;
+    color: var(--faint);
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Knowledge editing &middot; working draft</p>
+    <h1>Knowing when not to trust yourself</h1>
+    <p class="lede">
+      Retrieval-based knowledge editors route each query by thresholding a
+      verifier's confidence. That breaks when the verifier is confidently
+      wrong &mdash; and no recalibration of that confidence can detect it.
+      Measuring whether confidence is <em>discriminative</em>, rather than
+      how high it is, fixes the failure and transfers to a dataset the model
+      never saw.
+    </p>
+  </header>
+
+  <section>
+    <div class="stats">
+      <div class="stat">
+        <span class="num">0.956</span>
+        <span class="lbl">AUROC on a <strong>held-out dataset</strong> never seen in training</span>
+      </div>
+      <div class="stat">
+        <span class="num">+15.9</span>
+        <span class="lbl">points where fixed gating fails <span class="fig">(p=0.0019)</span></span>
+      </div>
+      <div class="stat">
+        <span class="num">0</span>
+        <span class="lbl">decisions changed where fixed gating already works</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The failure, and why thresholds can't fix it</h2>
+    <p>
+      A router scores the top retrieved candidate with a cross-encoder and
+      thresholds it: decline below one cut, recite the stored fact above
+      another, otherwise reason over the evidence. On MQuAKE-CF this gating
+      is <strong>net-negative in every input mode</strong> &mdash; worse than
+      simply disabling the gates:
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>MQuAKE-CF</th><th>Fixed gates</th><th>Always reason</th><th>Gap</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">structured</td><td class="fig">93.65%</td><td class="fig">96.83%</td><td class="fig">&minus;3.18</td></tr>
+          <tr><td class="name">unstructured</td><td class="fig">65.08%</td><td class="fig">80.95%</td><td class="fig">&minus;15.87</td></tr>
+          <tr><td class="name">extracted</td><td class="fig">69.84%</td><td class="fig">85.71%</td><td class="fig">&minus;15.87</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:var(--s3)">Two natural fixes fail, and their failure is the diagnosis:</p>
+    <ul>
+      <li>
+        Recalibrating the threshold moves the false-fire rate
+        <span class="fig">18.33% &rarr; 18.22%</span>. The score distributions
+        for correct and incorrect retrievals genuinely overlap.
+      </li>
+      <li>
+        Raising the threshold <span class="fig">0.85 &rarr; 0.97</span> changes
+        <em>nothing</em> &mdash; byte-identical decisions. Confidence on the
+        <em>wrong</em> retrievals is already above 0.97.
+      </li>
+    </ul>
+
+    <div class="note">
+      <p>
+        The router is asking the wrong question. It asks <em>&ldquo;how confident
+        is the verifier?&rdquo;</em> when it needs <em>&ldquo;is this confidence
+        discriminative?&rdquo;</em> A verifier scoring 0.99 on the top card and
+        0.98 on four unrelated ones isn't confident &mdash; it's saturated, and
+        its pick is close to arbitrary.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <figure>
+      <svg viewBox="0 0 640 210" role="img" aria-label="Two candidate sets with identical top-1 verifier scores: one where the top score stands clear of its competitors, one where all five are saturated near the top. A threshold on the top-1 score alone cannot tell them apart.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- threshold line across both panels -->
+        <line x1="18" y1="52" x2="622" y2="52" stroke="currentColor" stroke-width="1"
+              stroke-dasharray="4 4" opacity=".45"/>
+        <text x="18" y="44" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="currentColor" opacity=".65">threshold on top-1 score</text>
+
+        <!-- LEFT: discriminative -->
+        <g fill="currentColor">
+          <rect x="40"  y="40" width="34" height="110" opacity=".95"/>
+          <rect x="86"  y="118" width="34" height="32" opacity=".28"/>
+          <rect x="132" y="126" width="34" height="24" opacity=".28"/>
+          <rect x="178" y="131" width="34" height="19" opacity=".28"/>
+          <rect x="224" y="134" width="34" height="16" opacity=".28"/>
+        </g>
+        <line x1="34" y1="150" x2="266" y2="150" stroke="currentColor" stroke-width="1.5"/>
+        <text x="34" y="172" font-family="IBM Plex Sans, sans-serif" font-size="12.5"
+              font-weight="600" fill="currentColor">Discriminative</text>
+        <text x="34" y="190" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="currentColor" opacity=".7">top pick stands clear &rarr; trust it</text>
+
+        <!-- RIGHT: saturated -->
+        <g fill="currentColor">
+          <rect x="380" y="40" width="34" height="110" opacity=".95"/>
+          <rect x="426" y="44" width="34" height="106" opacity=".28"/>
+          <rect x="472" y="47" width="34" height="103" opacity=".28"/>
+          <rect x="518" y="45" width="34" height="105" opacity=".28"/>
+          <rect x="564" y="49" width="34" height="101" opacity=".28"/>
+        </g>
+        <line x1="374" y1="150" x2="606" y2="150" stroke="currentColor" stroke-width="1.5"/>
+        <text x="374" y="172" font-family="IBM Plex Sans, sans-serif" font-size="12.5"
+              font-weight="600" fill="currentColor">Saturated</text>
+        <text x="374" y="190" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="currentColor" opacity=".7">pick is arbitrary &rarr; don't</text>
+
+        <!-- the margin being measured -->
+        <line x1="57" y1="40" x2="57" y2="118" stroke="currentColor" stroke-width="1"
+              opacity="0"/>
+        <g color="currentColor">
+          <line x1="290" y1="40" x2="290" y2="118" stroke="currentColor" stroke-width="1.2"
+                marker-start="url(#ar)" marker-end="url(#ar)"/>
+          <text x="298" y="76" font-family="IBM Plex Mono, monospace" font-size="11"
+                fill="currentColor">margin</text>
+          <text x="298" y="91" font-family="IBM Plex Mono, monospace" font-size="11"
+                fill="currentColor" opacity=".7">large</text>
+        </g>
+        <g color="currentColor">
+          <line x1="630" y1="40" x2="630" y2="44" stroke="currentColor" stroke-width="1.2"/>
+          <text x="606" y="30" font-family="IBM Plex Mono, monospace" font-size="11"
+                fill="currentColor" opacity=".7">margin ~0</text>
+        </g>
+      </svg>
+      <figcaption>
+        Both candidate sets have the <em>identical</em> top-1 score, so any
+        threshold on it routes them the same way. The margin to the next-best
+        candidate separates them &mdash; a second-order quantity the first-order
+        threshold structurally cannot express.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <p>
+      Predict <code>P(top-1 retrieval is correct)</code> from the <strong>shape</strong>
+      of the top-<em>k</em> retrieval and verification result rather than its
+      top-1 magnitude. Fifteen features; the load-bearing ones are second-order:
+      margin to the best competitor, how many candidates clear the threshold,
+      softmax entropy over the neighbourhood, distinct subjects among the top-<em>k</em>.
+    </p>
+    <div class="note">
+      <p>
+        <strong>The constraint that makes this a method and not a per-dataset
+        switch:</strong> no feature is dataset identity, and no dataset-level
+        statistic is available at inference. The head is trained on CounterFact
+        + WikiUpdate with <strong>MQuAKE-CF held out entirely</strong>, so it must
+        generalise to a regime it has never seen.
+      </p>
+    </div>
+    <p>
+      Linear (logistic regression), chosen over higher capacity deliberately:
+      small training set, the claim rests on out-of-distribution transfer, and
+      the coefficients are inspectable so the mechanism is checkable rather than
+      asserted. A gradient-boosted model on the same features scores slightly
+      <em>better</em> out of distribution <span class="fig">(0.967 vs 0.956)</span>
+      &mdash; reported because it doesn't flatter the choice.
+    </p>
+
+    <h3>The mechanism, read off the fitted weights</h3>
+    <dl class="kv">
+      <dt><code>ver_max_rest</code></dt>
+      <dd><strong class="fig">&minus;1.43</strong> &mdash; confidence about a <em>competing</em> card predicts the top pick is <em>wrong</em></dd>
+      <dt><code>emb_margin_12</code></dt>
+      <dd class="fig">+1.29</dd>
+      <dt><code>ver_margin_12</code></dt>
+      <dd class="fig">+1.18</dd>
+      <dt><code>ver_top1</code></dt>
+      <dd class="fig">+0.68 &mdash; the first-order signal, outweighed</dd>
+    </dl>
+    <p style="margin-top:var(--s3)">
+      <strong>71.5% of coefficient mass sits on margin features.</strong> The
+      largest single weight is negative on the best competitor's score &mdash;
+      the effect recovered from data, not built in by hand.
+    </p>
+  </section>
+
+  <section>
+    <h2>Results</h2>
+    <p>
+      One head, one threshold, no per-dataset tuning. Paired tests throughout:
+      exact McNemar on discordant pairs, paired bootstrap, Wilson intervals,
+      Holm&ndash;Bonferroni across cells.
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Cell</th><th>Fixed</th><th>Adaptive</th>
+            <th>Difference (95% CI)</th><th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">MQuAKE-CF extracted</td>
+            <td class="fig">0.698</td><td class="fig win">0.857</td>
+            <td class="fig">+0.159 <span class="ci">[+.079, +.254]</span></td>
+            <td><span class="chip sig">Significant</span></td>
+          </tr>
+          <tr>
+            <td class="name">MQuAKE-CF unstructured</td>
+            <td class="fig">0.651</td><td class="fig win">0.809</td>
+            <td class="fig">+0.159 <span class="ci">[+.079, +.254]</span></td>
+            <td><span class="chip sig">Significant</span></td>
+          </tr>
+          <tr>
+            <td class="name">MQuAKE-CF structured</td>
+            <td class="fig">0.936</td><td class="fig">1.000</td>
+            <td class="fig">+0.064 <span class="ci">[+.016, +.127]</span></td>
+            <td><span class="chip null">Not significant</span></td>
+          </tr>
+          <tr>
+            <td class="name">CounterFact structured</td>
+            <td class="fig">1.000</td><td class="fig">1.000</td>
+            <td class="fig">0.000</td>
+            <td><span class="chip same">Identical</span></td>
+          </tr>
+          <tr>
+            <td class="name">WikiUpdate structured</td>
+            <td class="fig">0.994</td><td class="fig">0.994</td>
+            <td class="fig">0.000</td>
+            <td><span class="chip same">Identical</span></td>
+          </tr>
+          <tr>
+            <td class="name">WikiUpdate unstructured</td>
+            <td class="fig">0.438</td><td class="fig">0.431</td>
+            <td class="fig">&minus;0.006 <span class="ci">[&minus;.025, +.013]</span></td>
+            <td><span class="chip null">Not significant</span></td>
+          </tr>
+          <tr>
+            <td class="name">WikiUpdate extracted</td>
+            <td class="fig">0.475</td><td class="fig">0.463</td>
+            <td class="fig">&minus;0.013 <span class="ci">[&minus;.037, +.013]</span></td>
+            <td><span class="chip null">Not significant</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:var(--s3)">
+      Two cells improve significantly after correction. The
+      <span class="fig">100%</span> on MQuAKE-CF structured rests on only
+      <strong>four discordant pairs</strong>, where the smallest attainable exact
+      <em>p</em> is <span class="fig">2/2&#8308;&nbsp;=&nbsp;0.125</span> &mdash;
+      suggestive, not established, and reported that way. The two WikiUpdate
+      dips are one and two examples and are not distinguishable from zero.
+    </p>
+
+    <h3>What the head does behaviourally</h3>
+    <ul>
+      <li>
+        Bypass fires at <strong class="fig">27.0%</strong> on MQuAKE-CF extracted
+        and <strong class="fig">0.0%</strong> on CounterFact structured &mdash;
+        same head, same threshold.
+      </li>
+      <li>
+        On both structured cells it produces <strong>zero discordant pairs</strong>
+        with fixed gating: identical decisions on every query, not merely matched
+        accuracy.
+      </li>
+      <li>
+        Accuracy is unchanged for every threshold from <span class="fig">0.3</span>
+        to <span class="fig">0.8</span> while the bypass rate moves &mdash; not a
+        knife-edge result.
+      </li>
+      <li>
+        The <span class="fig">+15.87</span> gain is <em>identical</em> at 1.5B and
+        7B. Router inputs are generator-independent, so the mechanism is
+        architectural.
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>A refinement we proposed and refuted <span class="chip refuted">Negative result</span></h2>
+    <p>
+      WikiUpdate's unreliable cases score lower than MQuAKE-CF's
+      <span class="fig">(0.62&ndash;0.66 vs 0.75&ndash;0.76)</span>, suggesting the
+      <em>magnitude</em> of predicted unreliability could separate &ldquo;misleading,
+      decline&rdquo; from &ldquo;imperfect, reason over it.&rdquo; We added a second
+      lower threshold and tested it.
+    </p>
+    <div class="note warn">
+      <p>
+        It failed on the cell it was designed to fix
+        <span class="fig">(43.13% &rarr; 41.25%)</span> and was catastrophic on
+        MQuAKE-CF <span class="fig">(80.95% &rarr; 58.73%)</span>, below even the
+        original gating. The hypothesis reasoned from means while ignoring
+        distributions.
+      </p>
+    </div>
+    <p>
+      The failure is more useful than success would have been: it exposes a
+      <strong>target mismatch</strong>. The head predicts
+      <code>P(retrieval correct)</code>, but the router needs
+      <code>P(this action yields a correct answer)</code> &mdash; and those come
+      apart. A wrong retrieval can still be answered correctly from parametric
+      knowledge; a right one can be misread. Tellingly, the old verifier-threshold
+      REJECT set is a <em>worse</em> predictor of retrieval correctness yet a
+      <em>better</em>-chosen action set on WikiUpdate.
+    </p>
+    <p>
+      <strong>Next step, now properly motivated:</strong> train on outcome labels
+      &mdash; for each query and each action, whether it produced a correct answer
+      &mdash; and select the argmax. Decision-theoretic rather than
+      retrieval-quality-based; subsumes the current policy as a special case.
+    </p>
+  </section>
+
+  <section>
+    <h2>Limitations</h2>
+    <ul>
+      <li>MQuAKE-CF slices are <span class="fig">n=63</span>; the structured-mode result cannot reach significance.</li>
+      <li>One retrieval stack (MiniLM + one cross-encoder); sensitivity to that choice is untested.</li>
+      <li>Transfer demonstrated on <em>one</em> held-out dataset, not many.</li>
+      <li>Cost: <span class="fig">k</span> cross-encoder calls per query instead of 1 <span class="fig">(k=5)</span>.</li>
+      <li>Not a weight-editing replacement. On clean structured single-fact edits, weight editors remain competitive; the claim here is about robustness across input conditions and retrieval regimes.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Two questions I'd value your read on</h2>
+    <ul>
+      <li>
+        Does <em>&ldquo;knows when not to trust itself&rdquo;</em> read as a real
+        contribution to the editing community, or as sidestepping the standard
+        benchmark?
+      </li>
+      <li>
+        Workshop or main track &mdash; and if workshop, which ones do you rate?
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Working draft &middot; experiments complete, prose in progress. Builds on
+    SERAC's scope classifier and IKE's demonstration mechanism, neither claimed
+    as novel here. Evaluated on AKEW (CounterFact, WikiUpdate, MQuAKE-CF) across
+    three input conditions.
+  </footer>
+
+</div>
