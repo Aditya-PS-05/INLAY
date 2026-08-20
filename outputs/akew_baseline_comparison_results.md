@@ -145,16 +145,98 @@ that is MORE similar to the query is MORE likely to be a near-duplicate,
 easily-confused fact (the same structural property behind WikiUpdate's
 stale-object confusions and harder retrieval), not less -- the opposite of
 demonstrations' intended effect. **The fix is not a better demonstration-
-selection algorithm; it's recognizing that the demonstration mechanism
-itself is fundamentally at odds with high-entity-collision data**, and
-should be gated off (or replaced with a mechanism explicitly designed to
-avoid near-duplicate confusion) for datasets like WikiUpdate, rather than
-deployed universally the way it helped on CounterFact's largely-independent
-facts.
+selection algorithm** -- selection isn't the axis that matters here (see
+correction below).
 
-## Scope note
+**Correction (see "Plain IKE on WikiUpdate" further down this page):**
+this section's closing claim -- that the demonstration mechanism itself is
+"fundamentally at odds with high-entity-collision data" and should be gated
+off entirely -- turned out to be too strong. A follow-up segmented
+comparison found the real variable wasn't demonstrations vs no
+demonstrations, but which INSTRUCTION FRAMING wraps them:
+`answer_contextual`'s "answer only from the evidence above" framing (used
+in this section's CAKE+IKE test) actively hurts when combined with
+demonstrations on this subset (57.63% -> 53.39%), while IKE's own "trust
+the new fact over your prior belief" override framing, tested with the
+identical demonstrations on the identical subset, helps (57.63% -> 62.71%).
+The demonstration content was never the problem; the restrict-to-evidence
+instruction paired with it was. See below for the full breakdown.
 
-This is one dataset/mode comparison (CounterFact unstructured). The weight-
-editing methods (ROME/MEMIT/AlphaEdit/WISE/GRACE) and MeLLo remain out of
-scope, unchanged from prior scope notes -- a separate multi-day harness-
-engineering phase.
+## Plain IKE on WikiUpdate: closing the one comparison never run
+
+Every prior comparison on this page ran CounterFact unstructured. The
+`akew_baseline_compare.py` three-way comparison (CAKE routed vs plain RAG
+vs plain IKE, no CAKE machinery folded into IKE) had never been run on
+WikiUpdate -- only the CAKE+IKE-demonstrations variant above was. Closing
+that gap, same setup (n=160, WikiUpdate unstructured).
+
+| method | accuracy |
+|---|---|
+| plain RAG | 43.13% |
+| **CAKE routed pipeline** | 43.75% |
+| **plain IKE (with demonstrations)** | **46.88%** |
+
+**Plain IKE beats CAKE here too**, by 3.13 points -- at first this looks
+like it contradicts the finding just above that demonstrations HURT when
+folded into CAKE's own REASON path (43.75% -> 40.62%). Both use the
+identical random-demonstration mechanism (`build_demonstrations`, n=2,
+seed=0), so the difference has to be structural, not mechanism-level:
+CAKE+IKE only adds demonstrations to REASON-routed queries, leaving the
+42/160 REJECT-routed queries answered identically (`answer_no_context`) in
+both conditions. Plain IKE has no REJECT gate at all -- it retrieves and
+generates with demonstrations on every query unconditionally, including the
+ones CAKE's router declines to even attempt.
+
+Tested the resulting hypothesis directly with a segmented rerun
+(`akew_baseline_compare_segmented.py`), splitting accuracy by the router's
+own REJECT vs non-REJECT decision on the identical test split.
+
+**The REJECT-subset hypothesis was wrong.** On the 42 REJECT-routed
+queries, CAKE's answer-from-parametric-knowledge-alone actually edges out
+both RAG and plain IKE's attempt-anyway strategy (4.76% vs 2.38%), not the
+other way around -- consistent with the original framing that REJECT is
+declining for a reason, and attempting an answer on a genuinely bad
+retrieval doesn't reliably beat declining. This subset is small (n=42) and
+both numbers are near-floor, so read this as "REJECT is not obviously
+worse here," not as a strong positive result for REJECT specifically.
+
+| subset (n) | plain RAG | CAKE routed | plain IKE |
+|---|---|---|---|
+| REJECT subset (n=42) | 2.38% | **4.76%** | 2.38% |
+| non-REJECT subset (n=118) | 57.63% | 57.63% (identical to RAG, expected) | **62.71%** |
+
+**The real driver is the non-REJECT subset, and it exposes a real
+methodological difference, not a contradiction.** `answer_ike` (used here)
+and `answer_contextual(..., demonstrations=...)` (used in the CAKE+IKE
+comparison above) both prepend demonstration examples, but with different
+instruction framing:
+
+- `answer_contextual`: *"Answer based only on the evidence above, in a few
+  words"* -- a restrictive instruction that tells the model to stick to the
+  retrieved evidence specifically.
+- `answer_ike`: *"Given this new fact, answer using it, not what you
+  previously believed"* -- IKE's actual override framing, paired directly
+  with the fact and carrying no "only the evidence" restriction.
+
+Back-calculating the REASON-subset accuracy the earlier CAKE+IKE comparison
+implies (its reported 40.62% overall, minus this run's byte-identical
+REJECT-subset contribution, since demonstrations only touch the REASON
+path): **53.39%** (63/118) for the restrictive CAKE framing with demos,
+versus this run's **62.71%** (74/118) for IKE's own override framing with
+the identical demonstrations, versus **57.63%** (68/118) with no
+demonstrations at all.
+
+**The corrected finding: it isn't "demonstrations hurt on WikiUpdate."**
+It's that pairing demonstrations with an "answer only from the evidence"
+restriction hurts (57.63% -> 53.39%), while pairing the same demonstrations
+with IKE's actual override instruction helps (57.63% -> 62.71%) --
+opposite directions from the identical demonstration content. The
+restrictive framing appears to compound WikiUpdate's collision problem: it
+tells the model to trust ONLY the possibly-wrong retrieved evidence, with
+no permission to fall back on the demonstrated override pattern's implicit
+"trust the new fact over your prior" license the way IKE's own framing
+does. This changes the actionable recommendation from "gate demonstrations
+off for collision-heavy datasets" to "use IKE's own override framing, not a
+restrict-to-evidence framing, when combining demonstrations with retrieved
+context" -- a fixable prompt-design choice, not a fundamental incompatibility
+between demonstrations and this class of dataset.
