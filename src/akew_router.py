@@ -30,6 +30,10 @@ class RouteDecision:
     retrieval_score: Optional[float]
     verifier_score: Optional[float]
     reason: str
+    # Predicted P(top-1 retrieval is correct) from the reliability head, when
+    # one is attached; None when running without it (the default), so every
+    # pre-existing caller and every prior result is unaffected.
+    predicted_reliability: Optional[float] = None
 
 
 def _looks_multihop(query_text):
@@ -47,12 +51,38 @@ def _looks_multihop(query_text):
 
 
 class AkewRouter:
-    def __init__(self, retrieval_index, verifier, reject_threshold=0.65, direct_threshold=0.85, topk=5):
+    def __init__(self, retrieval_index, verifier, reject_threshold=0.65, direct_threshold=0.85, topk=5,
+                 reliability_head=None, bypass_threshold=0.5):
+        """reliability_head: optional trained ReliabilityHead (akew_reliability.py).
+
+        When attached, the router first asks whether its own gating signal is
+        TRUSTWORTHY for this query -- P(top-1 retrieval is correct), predicted
+        from the shape of the retrieval+verification result -- and bypasses
+        both gates (forcing REASON) when that probability falls below
+        bypass_threshold.
+
+        Why this exists: akew_fullpipeline_results.md documents REJECT/DIRECT
+        gating being net-negative on MQuAKE-CF in EVERY input mode, while
+        helping on CounterFact/WikiUpdate in every mode. Two separate
+        experiments (verifier recalibration; a direct_threshold sweep at
+        0.85/0.97/1.01) both showed no scalar threshold on the top-1 score can
+        fix it, because the verifier is confidently WRONG there -- its score
+        distributions genuinely overlap. The head asks a second-order question
+        a first-order threshold cannot express: not "is this score high?" but
+        "is this score discriminative?"
+
+        None (the default) reproduces the exact prior behaviour for every
+        existing caller, down to using the identical single-pair verifier call
+        rather than the batched top-k one -- additive, not a silent change to
+        any previously reported number.
+        """
         self.index = retrieval_index
         self.verifier = verifier
         self.reject_threshold = reject_threshold
         self.direct_threshold = direct_threshold
         self.topk = topk
+        self.reliability_head = reliability_head
+        self.bypass_threshold = bypass_threshold
 
     def route(self, query_text):
         candidates = self.index.query(query_text, topk=self.topk)
@@ -60,13 +90,39 @@ class AkewRouter:
             return RouteDecision("REJECT", None, None, None, "no_candidates")
 
         top_card, retrieval_score = candidates[0]
-        cand_text = top_card.canonical_fact_text or top_card.raw_evidence_text or ""
         import numpy as np
-        raw_score = self.verifier.predict([[query_text, cand_text]], convert_to_numpy=True, show_progress_bar=False)[0]
-        verifier_score = float(1 / (1 + np.exp(-raw_score)))
+
+        predicted_reliability = None
+        if self.reliability_head is not None:
+            # The head needs verifier scores for ALL top-k candidates, and the
+            # top-1 score it needs anyway is the first element -- so this path
+            # computes both in one batched call rather than scoring top-1
+            # twice. Cost note stated plainly: k cross-encoder pairs per query
+            # instead of 1 (k=5 by default).
+            from akew_reliability import score_candidates
+            all_scores = score_candidates(self.verifier, query_text, candidates)
+            verifier_score = all_scores[0]
+            pred = self.reliability_head.predict_one(
+                query_text, candidates, all_scores, self.direct_threshold)
+            predicted_reliability = pred.p_correct
+
+            if predicted_reliability < self.bypass_threshold:
+                # Both gates are suppressed together, deliberately: the
+                # threshold sweep in akew_fullpipeline_results.md showed
+                # disabling DIRECT alone still lost to always-REASON (90.48%
+                # vs 96.83%), because the REJECT gate was independently
+                # net-negative in the same regime. Half a bypass was already
+                # tested and was not enough.
+                return RouteDecision("REASON", top_card.edit_id, retrieval_score, verifier_score,
+                                     "low_predicted_reliability_bypass", predicted_reliability)
+        else:
+            cand_text = top_card.canonical_fact_text or top_card.raw_evidence_text or ""
+            raw_score = self.verifier.predict([[query_text, cand_text]], convert_to_numpy=True, show_progress_bar=False)[0]
+            verifier_score = float(1 / (1 + np.exp(-raw_score)))
 
         if verifier_score < self.reject_threshold:
-            return RouteDecision("REJECT", top_card.edit_id, retrieval_score, verifier_score, "below_reject_threshold")
+            return RouteDecision("REJECT", top_card.edit_id, retrieval_score, verifier_score,
+                                 "below_reject_threshold", predicted_reliability)
 
         # FIX (found by the full-pipeline test, akew_fullpipeline_results.md):
         # DIRECT's whole rationale is "a clean literal answer exists to recite
@@ -81,8 +137,10 @@ class AkewRouter:
         # vs 85.71%). DIRECT is now gated on structured mode specifically.
         if (verifier_score >= self.direct_threshold and not _looks_multihop(query_text)
                 and top_card.input_mode == "structured"):
-            return RouteDecision("DIRECT", top_card.edit_id, retrieval_score, verifier_score, "high_confidence_atomic_structured")
+            return RouteDecision("DIRECT", top_card.edit_id, retrieval_score, verifier_score,
+                                 "high_confidence_atomic_structured", predicted_reliability)
 
         return RouteDecision("REASON", top_card.edit_id, retrieval_score, verifier_score,
                               "relevant_but_not_direct_confidence" if verifier_score < self.direct_threshold
-                              else ("multihop_cue" if _looks_multihop(query_text) else "non_structured_mode"))
+                              else ("multihop_cue" if _looks_multihop(query_text) else "non_structured_mode"),
+                              predicted_reliability)
