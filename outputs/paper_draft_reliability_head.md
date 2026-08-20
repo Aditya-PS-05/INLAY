@@ -243,22 +243,12 @@ sit on a knife edge.
 is architectural; the 7B run tests that reasoning rather than searching for a
 trend.
 
-**A scale anomaly we do not explain.** On WikiUpdate unstructured, all three
-conditions converge to exactly 39.37% at 7B — consistent with the paired test
-finding no real gap at 1.5B, but they converge *downward*: the cell is 4.38
-points **worse** at 7B than at 1.5B for every condition. This is
-dataset-specific rather than general, since CounterFact unstructured improves
-over the same scale jump (87.07% → 89.12%). We verified the run is valid
-(routing genuinely differs across conditions — REJECT counts 42/0/50 of 160 —
-and the model identity is recorded in the run output), so the identical
-accuracies are coincidence over different routing rather than a collapsed
-configuration. We flag this as an open anomaly rather than assimilating it to
-the method's story: our reliability head neither causes nor addresses it, and
-it is visible in the fixed baseline too. A plausible but untested account is
-that WikiUpdate's stale-vs-current entity collisions interact with a larger
-model's stronger parametric priors over the same real-world entities, making
-injected edits harder to enforce — which predicts the degradation should
-concentrate on collision cases, a directly checkable claim we have not run.
+**A scale anomaly, diagnosed.** On WikiUpdate unstructured every condition is
+4.38 points *worse* at 7B than at 1.5B (43.75% → 39.37% for fixed gating),
+while CounterFact unstructured improves over the same jump (87.07% → 89.12%).
+Our head neither causes nor addresses this — it is present in the fixed
+baseline — but leaving it unexplained invites a wrong reading, so we
+diagnosed it (§6.1).
 
 **Cost.** k cross-encoder calls per query instead of 1 (k=5), plus a
 negligible dot product. Cheap relative to the generation call that follows,
@@ -266,7 +256,55 @@ but a real 5× increase in the verification stage.
 
 ---
 
-## 6. A Refinement We Refuted
+## 6.1 The Scale Anomaly: Refusal, Not Edit Failure
+
+The 7B degradation on WikiUpdate invites the obvious knowledge-editing
+reading — that a larger model's stronger parametric priors resist the
+injected edit. **We tested that and refuted it.** Operationalising "holds a
+strong prior" as spontaneously producing the pre-edit value with no context,
+labelled per model: the rate of reverting to the pre-edit value *fell* at 7B
+(2.50% → 1.87%), the loss sat in the *no*-prior subset, and the CounterFact
+control has 4× the strong-prior rate while improving. Across both datasets
+and scales, holding a prior tracks *better* accuracy.
+
+The actual cause is refusal. At 7B the model declines to commit far more
+often on noisy evidence:
+
+| WikiUpdate | 1.5B | 7B |
+|---|---|---|
+| refusal rate, overall | 29.38% | **46.88%** |
+| refusal rate, retrieval wrong | 66.67% | **91.11%** |
+| refusal rate, retrieval correct | 14.78% | 29.57% |
+| CounterFact control | 0.68% | 1.36% |
+
+Refusal is functionally a guaranteed miss under substring accuracy (2% vs
+60–73% when the model commits), and the decomposition reproduces both
+observed accuracies exactly. **The larger model is more accurate whenever it
+commits** (0.765 vs 0.694 on correct-retrieval examples); it scores lower
+purely because it declines more. At 1.5B's refusal rate it would score ~47.5%.
+Its extra caution is well-placed where retrieval is wrong (free — accuracy is
+~0 either way) and costly where retrieval is correct, which is the entire gap.
+
+Two implications extend beyond this cell. First, the anomaly is **not an
+editing failure**: no edit is resisted or lost. WikiUpdate exposes it only
+because it is the one dataset with enough retrieval noise (28%) to trigger
+refusal at volume. Second, **substring accuracy conflates "wrong" with
+"declined,"** and larger or more heavily aligned models decline more — so any
+scale comparison on a noisy-retrieval benchmark using this metric will
+understate larger models. This is a property of the measure rather than of any
+method under test, and applies to the field's numbers generally. Reporting
+refusal rate alongside accuracy is nearly free and prevents the misreading.
+
+*Methodological note:* our first refusal detector used literal strings and
+omitted "does not include" — the 7B model's most common refusal phrasing.
+Because the omission was model-specific, it under-counted 7B and reported the
+wrong-retrieval trend *backwards*. Inspecting sampled outputs caught it; the
+detector was rebuilt as pattern families and validated against the missed
+cases plus confident answers it must not fire on. We report this because a
+refusal rate published without an audited sample would have been wrong and
+entirely plausible.
+
+## 6.2 A Refinement We Refuted
 
 Observing that WikiUpdate's unreliable cases score lower on predicted
 reliability (mean 0.62–0.66) than MQuAKE-CF's (0.75–0.76), we hypothesised

@@ -534,9 +534,77 @@ WikiUpdate has ~28% wrong retrievals to hedge about; CounterFact has ~1% --
 which would explain why the degradation is dataset-specific, the fact that
 made Hypothesis 1 attractive in the first place.
 
-Being tested now (`akew_hedge_diag.py`), again with criteria fixed in advance:
-confirmation requires more hedging at 7B, *concentrated on wrong-retrieval
-examples*, with a much smaller gap on the CounterFact control. Results below.
+### Hypothesis 2 — CONFIRMED on all three pre-stated criteria
+
+| WikiUpdate unstructured | 1.5B | 7B | Δ |
+|---|---|---|---|
+| hedge rate, overall | 29.38% | **46.88%** | **+17.50** |
+| hedge rate, retrieval **wrong** | 66.67% | **91.11%** | **+24.44** |
+| hedge rate, retrieval correct | 14.78% | 29.57% | +14.79 |
+| CounterFact control, overall | 0.68% | 1.36% | **+0.68** |
+
+All three criteria met: markedly more hedging at 7B, the excess largest on
+wrong-retrieval examples, and a control gap 25× smaller.
+
+**A measurement bug found and fixed mid-diagnostic, which reversed the
+result.** The first version of the hedge detector used literal strings and
+had `does not contain / provide / mention / specify` but not `does not
+INCLUDE` -- which turned out to be the 7B model's most common refusal
+phrasing (three of seven sampled failures used it and scored as non-hedges).
+Because 7B favours that phrasing, the under-count was *biased toward 7B
+specifically*, and the broken detector reported wrong-retrieval hedging
+*falling* at 7B (57.78% → 51.11%) -- the exact opposite of the truth. The
+detector was rebuilt as pattern families, checked against the cases it had
+missed plus confident answers it must not fire on (11 checks), and re-run.
+The first version's numbers are void, not adjusted. **The sample dump is what
+caught this; a rate reported without one would have been wrong and
+plausible.**
+
+### Why this fully accounts for the anomaly
+
+Cross-tabulating hedging against correctness:
+
+| WikiUpdate | hedged | not hedged |
+|---|---|---|
+| 1.5B | 0.021 (n=47) | 0.602 (n=113) |
+| 7B | 0.013 (n=75) | **0.729** (n=85) |
+
+**Hedging is functionally a guaranteed miss** (~2% vs 60–73%). The
+decomposition reproduces the observed numbers exactly: 1.5B scores
+17×0.059 + 98×0.694 ≈ 69 of 160 (43.1%); 7B scores 34×0.000 + 81×0.765 +
+41×0.024 ≈ 63 of 160 (39.4%).
+
+**The essential point: 7B is the better model, and loses anyway.** When it
+commits to an answer it is *more* accurate than 1.5B (0.765 vs 0.694 on
+correct-retrieval examples). It scores lower only because it declines far
+more often. Had 7B hedged at 1.5B's rate on correct retrievals, it would
+score roughly 47.5% — comfortably ahead.
+
+Its extra caution is also **correctly targeted where it is free and wrongly
+targeted where it is costly**: on wrong retrievals it hedges 91.11% vs
+66.67%, which costs nothing (accuracy is ~0 either way and declining is
+arguably the right behaviour); on *correct* retrievals it hedges 29.57% vs
+14.78%, and that subset is the entire loss.
+
+### What this means beyond this one anomaly
+
+Two consequences worth carrying into the write-up:
+
+1. **The anomaly is not a knowledge-editing failure at all.** No edit is
+   being resisted, overridden, or lost — the earlier prior-conflict story was
+   wrong about that. The larger model simply declines to answer more often on
+   noisy evidence, and this benchmark's accuracy metric scores a refusal
+   identically to a wrong answer. WikiUpdate exposes it only because it is
+   the one dataset with enough retrieval noise (28%) to trigger the behaviour
+   at volume; CounterFact's ~1% noise gives it nothing to decline about.
+
+2. **Substring accuracy conflates "wrong" with "declined to answer,"** and
+   larger or more heavily aligned models decline more. Any scale comparison
+   on a noisy-retrieval benchmark using this metric will therefore understate
+   larger models. This is a property of the measure, not of the method under
+   test, and it is a caveat that applies to the field's numbers generally,
+   not just to ours. Reporting hedge rate alongside accuracy costs nothing
+   and would prevent the misreading.
 
 **The +15.87-point gain on MQuAKE-CF extracted is identical at both scales.**
 Not merely similar -- identical, because the improvement comes entirely from

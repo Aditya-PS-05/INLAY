@@ -48,23 +48,48 @@ MODE = sys.argv[2] if len(sys.argv) > 2 else "unstructured"
 LIMIT = int(sys.argv[3]) if len(sys.argv) > 3 else 200
 MODEL_NAME = os.environ.get("AKEW_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 
-# Surface cues for "declined to commit to an answer". Fixed and inspectable;
-# see the docstring on why this is not a model judge.
-HEDGE_CUES = [
-    "cannot determine", "can't determine", "cannot be determined",
-    "does not specify", "doesn't specify", "not specified",
-    "does not provide", "doesn't provide", "no information",
-    "not mentioned", "does not mention", "doesn't mention",
-    "unable to", "not enough information", "insufficient information",
-    "not clear", "unclear", "cannot answer", "can't answer",
-    "does not contain", "doesn't contain", "not possible to",
-    "there is no", "no evidence",
+# Surface cues for "declined to commit to an answer".
+#
+# REWRITTEN after inspecting the first run's sample dump, which showed the
+# original literal-string list silently UNDER-counting: it had "does not
+# contain / provide / mention / specify" but not "does not INCLUDE", and
+# "does not include" turned out to be this model's most common phrasing --
+# three of seven sampled failures used it and were scored as non-hedges. A
+# rate computed from that list was not measuring what it claimed to.
+#
+# Replaced with pattern families rather than a longer literal list, since the
+# same drift would recur with the next unlisted verb. The sample dump below
+# is the check on THIS version -- it exists so the classifier stays auditable
+# rather than trusted.
+import re as _re
+
+HEDGE_PATTERNS = [
+    _re.compile(p) for p in [
+        r"(does|do|did)\s+not\s+(contain|include|provide|specify|mention|have|appear|state|indicate|give)",
+        r"(doesn't|don't|didn't)\s+(contain|include|provide|specify|mention|have|appear|state|indicate|give)",
+        r"\b(no|insufficient|not enough|lacks?)\s+(information|details?|evidence|mention|data)",
+        r"(cannot|can't|could not|couldn't|unable to)\s+(be\s+)?(determine|answer|find|tell|say|identify|confirm)",
+        r"\bnot\s+(specified|mentioned|provided|included|available|clear|stated|given)",
+        r"\bthere\s+is\s+no\s+(information|mention|evidence|indication|detail)",
+        r"\b(unclear|not possible to)\b",
+        r"\bevidence\s+(provided|given)\s+does\s+not\b",
+    ]
 ]
+
+# Counted and reported SEPARATELY, not folded into the hedge rate: the model
+# asserting a negative ("X is not currently a member of Y") is a different
+# behaviour from declining for lack of evidence, even though both produce a
+# miss. Merging them would blur the very distinction under test.
+NEGATIVE_ASSERTION = _re.compile(r"\bis\s+not\s+(currently\s+)?(a\s+)?(member|part|player|the)\b")
 
 
 def is_hedge(text):
     t = (text or "").lower()
-    return any(cue in t for cue in HEDGE_CUES)
+    return any(p.search(t) for p in HEDGE_PATTERNS)
+
+
+def is_negative_assertion(text):
+    return bool(NEGATIVE_ASSERTION.search((text or "").lower()))
 
 
 cards, golds, _groups = load_akew(DATASET, MODE)
@@ -93,14 +118,18 @@ for c in test:
         else answer_no_context(model, tok, q, device)
     retrieval_ok = bool(top1 and top1[0][0].edit_id == c.edit_id)
     hedged = is_hedge(ans)
+    neg = is_negative_assertion(ans)
     rows.append({
         "edit_id": c.edit_id, "retrieval_correct": retrieval_ok,
-        "hedged": hedged, "hit": bool(is_hit(ans, g)),
+        "hedged": hedged, "negative_assertion": neg,
+        "declined": bool(hedged or neg),
+        "hit": bool(is_hit(ans, g)),
         "answer_len_words": len(ans.split()),
     })
-    if len(samples) < 12 and not is_hit(ans, g):
+    if len(samples) < 16 and not is_hit(ans, g):
         samples.append({"q": q, "gold": g.target_new, "answer": ans,
-                        "retrieval_correct": retrieval_ok, "hedged": hedged})
+                        "retrieval_correct": retrieval_ok, "hedged": hedged,
+                        "negative_assertion": neg})
 
 n = len(rows)
 ok_rows = [r for r in rows if r["retrieval_correct"]]
@@ -121,6 +150,12 @@ out = {
     "hedge_rate_overall": rate(rows, "hedged"),
     "hedge_rate_retrieval_correct": rate(ok_rows, "hedged"),
     "hedge_rate_retrieval_wrong": rate(bad_rows, "hedged"),
+    "negative_assertion_rate": rate(rows, "negative_assertion"),
+    # hedge OR negative assertion -- both are "did not commit to an answer",
+    # reported alongside the narrow hedge rate rather than replacing it.
+    "declined_rate_overall": rate(rows, "declined"),
+    "declined_rate_retrieval_correct": rate(ok_rows, "declined"),
+    "declined_rate_retrieval_wrong": rate(bad_rows, "declined"),
     "n_retrieval_correct": len(ok_rows),
     "n_retrieval_wrong": len(bad_rows),
     "mean_answer_words": mean(rows, "answer_len_words"),
