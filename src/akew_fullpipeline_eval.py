@@ -25,7 +25,7 @@ Compares three conditions per query:
 
 Usage: python akew_fullpipeline_eval.py <dataset> <input_mode> [limit]
 """
-import sys, json, random
+import sys, os, json, random
 sys.path.insert(0, "src")
 from akew_data import load_akew
 from akew_splits import subject_disjoint_split
@@ -47,6 +47,15 @@ MODEL_NAME = sys.argv[4] if len(sys.argv) > 4 else "Qwen/Qwen2.5-1.5B-Instruct"
 # dataset-aware threshold (rather than retraining anything) recovers the gap.
 DIRECT_THRESHOLD = float(sys.argv[5]) if len(sys.argv) > 5 else 0.85
 VERIFIER_PATH = "outputs/akew_verifier_ckpt_v2"
+# The adaptive router is the validated-best configuration
+# (akew_reliability_head_results.md: dominates both fixed policies, and makes
+# byte-identical decisions on the cells where fixed gating already works, so
+# it cannot degrade them). It is enabled here when the head artifact exists,
+# rather than being made the AkewRouter constructor default: a library class
+# should not silently load a file from disk, and an explicit opt-in at the
+# call site keeps it obvious which configuration produced a given number.
+# Set AKEW_RELIABILITY_HEAD="" to force the legacy fixed-gate behaviour.
+HEAD_PATH = os.environ.get("AKEW_RELIABILITY_HEAD", "outputs/akew_reliability_head.json")
 
 cards, golds, _groups = load_akew(DATASET, MODE)
 _tr, _va, test = subject_disjoint_split(cards, train_frac=0.7, val_frac=0.15, seed=0)
@@ -57,7 +66,15 @@ if LIMIT and LIMIT < len(test):
 index = DenseCardIndex()
 index.build(cards)   # full card pool, including OTHER groups' cards -- realistic retrieval difficulty
 verifier = CrossEncoder(VERIFIER_PATH)
-router = AkewRouter(index, verifier, direct_threshold=DIRECT_THRESHOLD)
+_head = None
+if HEAD_PATH and os.path.exists(HEAD_PATH):
+    from akew_reliability import ReliabilityHead
+    _head = ReliabilityHead.load(HEAD_PATH)
+    print(f"[pipeline] adaptive router ENABLED (head: {HEAD_PATH})", file=sys.stderr)
+else:
+    print(f"[pipeline] adaptive router DISABLED -- running legacy fixed gates "
+          f"(no head at {HEAD_PATH!r})", file=sys.stderr)
+router = AkewRouter(index, verifier, direct_threshold=DIRECT_THRESHOLD, reliability_head=_head)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 tok = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -109,6 +126,11 @@ n = len(routed_hits)
 out = {
     "dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME, "verifier": "v2",
     "direct_threshold": DIRECT_THRESHOLD,
+    # Stamped into every result so a number can never be read without knowing
+    # which router produced it -- the two configurations differ by up to 15.9
+    # points on MQuAKE-CF, so an unlabelled accuracy is ambiguous.
+    "adaptive_router": bool(_head),
+    "reliability_head": HEAD_PATH if _head else None,
     "accuracy": {
         "routed_full_pipeline": round(sum(routed_hits) / n, 4) if n else None,
         "always_reason_no_routing": round(sum(always_reason_hits) / n, 4) if n else None,

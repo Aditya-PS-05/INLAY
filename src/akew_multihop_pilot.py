@@ -21,6 +21,10 @@ import torch
 LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 80
 MODEL_NAME = sys.argv[2] if len(sys.argv) > 2 else "Qwen/Qwen2.5-1.5B-Instruct"
 VERIFIER_PATH = sys.argv[3] if len(sys.argv) > 3 else "outputs/akew_verifier_ckpt_v2"
+# 4th arg enables the reliability-head hop gate alongside the raw-verifier one,
+# scoring BOTH on the identical records in a single pass so the comparison is
+# paired rather than two runs stitched together.
+HEAD_PATH = sys.argv[4] if len(sys.argv) > 4 else None
 MODE = "structured"
 
 cards, golds, groups = load_akew("MQuAKE-CF", MODE)
@@ -38,7 +42,12 @@ raw = load_mquake_raw()
 random.seed(0)
 sample = random.sample(list(enumerate(raw)), min(LIMIT, len(raw)))
 
-multihop_hits, naive_hits = [], []
+head = None
+if HEAD_PATH:
+    from akew_reliability import ReliabilityHead
+    head = ReliabilityHead.load(HEAD_PATH)
+
+multihop_hits, naive_hits, head_hits = [], [], []
 examples_log = []
 
 for i, rec in sample:
@@ -46,6 +55,11 @@ for i, rec in sample:
     if result is None:
         continue
     multihop_hits.append(result["hit"])
+
+    if head is not None:
+        head_result = answer_multihop_group(rec, index, verifier, model, tok, device,
+                                            reliability_head=head)
+        head_hits.append(head_result["hit"] if head_result else False)
 
     # naive baseline: pick the FIRST multi-hop question phrasing, retrieve once
     # against the whole card pool, generate once, no decomposition at all
@@ -76,9 +90,16 @@ for i, rec in sample:
         })
 
 out = {"n": len(multihop_hits), "model": MODEL_NAME, "verifier": VERIFIER_PATH,
+       "reliability_head": HEAD_PATH,
        "accuracy": {
            "iterative_multihop": round(sum(multihop_hits) / len(multihop_hits), 4) if multihop_hits else None,
+           "iterative_multihop_reliability_gate": round(sum(head_hits) / len(head_hits), 4) if head_hits else None,
            "naive_single_shot": round(sum(naive_hits) / len(naive_hits), 4) if naive_hits else None,
+       },
+       "per_example_hits": {
+           "multihop_verifier_gate": [int(h) for h in multihop_hits],
+           "multihop_reliability_gate": [int(h) for h in head_hits] if head_hits else None,
+           "naive": [int(h) for h in naive_hits],
        },
        "sample_examples": examples_log}
 print("<<<JSON>>>")

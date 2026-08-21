@@ -50,14 +50,38 @@ class HopStep:
 
 
 def answer_multihop_group(rec, index, verifier, model, tok, device, max_hops=3,
-                          verifier_threshold=0.5):
+                          verifier_threshold=0.5,
+                          reliability_head=None, reliability_threshold=0.5):
     """rec: one raw MQuAKE-CF record (from the AKEW json, not a KnowledgeCard --
     needed for new_single_hops, which lives only in the raw data).
     index: a DenseCardIndex built over the full MQuAKE-CF card set for this
     input mode, so retrieval can find any group's edits -- including OTHER
     groups' cards, whose interference is real signal, not something to
-    suppress by artificially restricting the candidate pool to this group."""
+    suppress by artificially restricting the candidate pool to this group.
+
+    reliability_head: optional trained ReliabilityHead (akew_reliability.py).
+
+    WHY IT BELONGS HERE SPECIFICALLY: the per-hop branch below thresholds the
+    RAW top-1 verifier score -- exactly the first-order-threshold failure mode
+    akew_reliability_head_results.md documents, applied to MQuAKE-CF, the one
+    dataset where that failure is worst and where the head recovers +15.9
+    points in the single-hop router. The head predicts P(top-1 retrieval is
+    correct), which is precisely what this branch is trying to decide, so this
+    module was independently reimplementing the thing already shown not to
+    work.
+
+    TRAIN/TEST DISTRIBUTION NOTE, not a detail: the head was trained on top-k=5
+    candidate sets and several of its features are defined over that set
+    (emb_margin_15, ver_n_above_direct, emb_entropy, subject_diversity).
+    Feeding it the topk=3 set this function uses by default would shift those
+    features off their training distribution and quietly degrade predictions
+    rather than raise. So when a head is attached, retrieval widens to 5 to
+    match how the head was trained.
+
+    None (the default) reproduces the existing raw-verifier behaviour exactly,
+    including topk=3, so every previously reported multi-hop number stands."""
     import numpy as np
+    topk = 5 if reliability_head is not None else 3
     hops = rec.get("new_single_hops", [])[:max_hops]
     if not hops:
         return None
@@ -68,7 +92,7 @@ def answer_multihop_group(rec, index, verifier, model, tok, device, max_hops=3,
         sub_q = hop.get("question") or hop.get("cloze", "")
         if not sub_q:
             break
-        candidates = index.query(sub_q, topk=3)
+        candidates = index.query(sub_q, topk=topk)
         if not candidates:
             # same fallback semantics as the low-verifier-score branch below:
             # an empty index result is not a broken chain, answer from base
@@ -83,10 +107,22 @@ def answer_multihop_group(rec, index, verifier, model, tok, device, max_hops=3,
             continue
         top_card, retrieval_score = candidates[0]
         cand_text = top_card.canonical_fact_text or top_card.raw_evidence_text or ""
-        raw_score = verifier.predict([[sub_q, cand_text]], convert_to_numpy=True, show_progress_bar=False)[0]
-        v_score = float(1 / (1 + np.exp(-raw_score)))
 
-        if v_score < verifier_threshold:
+        if reliability_head is not None:
+            # Score all k candidates once: the head needs the whole set, and
+            # the top-1 score it also needs is simply the first element, so
+            # this replaces rather than adds to the single-pair call.
+            from akew_reliability import score_candidates
+            all_scores = score_candidates(verifier, sub_q, candidates)
+            v_score = all_scores[0]
+            fallback = (reliability_head.predict_one(
+                sub_q, candidates, all_scores).p_correct < reliability_threshold)
+        else:
+            raw_score = verifier.predict([[sub_q, cand_text]], convert_to_numpy=True, show_progress_bar=False)[0]
+            v_score = float(1 / (1 + np.exp(-raw_score)))
+            fallback = (v_score < verifier_threshold)
+
+        if fallback:
             # FALLBACK FIX (see outputs/akew_multihop_results.md): a low
             # verifier score here usually does NOT mean the chain is broken --
             # it means this hop's fact was never EDITED, so it isn't in the

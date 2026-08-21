@@ -132,6 +132,43 @@ passing through a "founder of a religion" hop -- confirming this is a
 specific, repeatable model confusion about that entity, not noise that
 would wash out with a larger sample.
 
+## Does the reliability head improve the per-hop gate? No — a clean null
+
+The per-hop branch below thresholds the RAW top-1 verifier score, which is
+exactly the first-order-threshold failure mode `akew_reliability_head_results.md`
+documents, applied to MQuAKE-CF, the dataset where that failure is worst and
+where the head recovers +15.9 points in the single-hop router. So this looked
+like an obvious place for it to help.
+
+`answer_multihop_group()` gained an optional `reliability_head` (retrieval
+widens to top-k=5 when attached, matching how the head was trained; `None`
+reproduces the previous behaviour exactly). Both gates scored on the identical
+354 records in one pass:
+
+| per-hop gate | accuracy (n=354) |
+|---|---|
+| raw verifier score (existing) | **53.95%** |
+| reliability head | 53.39% |
+| naive single-shot (reference) | 16.10% |
+
+**No improvement — a 0.56-point difference is two examples, indistinguishable
+from noise.** Recorded as a null rather than quietly dropped.
+
+**Why it changes nothing here, and why that is consistent:** the head is a
+better predictor of whether retrieval is correct, but in this loop the *cost
+of getting that decision wrong is already near zero*. The fallback fix above
+means a hop that declines the retrieved card still answers from base knowledge
+plus prior hops and continues; that path is good enough that both branches
+usually produce a usable hop answer. Improving the detector cannot help when
+both actions it chooses between lead to similar outcomes.
+
+That is the **same target mismatch** the three-way policy exposed in
+`akew_reliability_head_results.md`: the head predicts
+`P(retrieval correct)` when what matters is `P(this action yields a correct
+answer)`. Two independent experiments — the three-way router policy and this
+multi-hop gate — now point at the identical diagnosis, which is stronger
+evidence for it than either alone.
+
 ## 7B-scale confirmation (Qwen2.5-7B-Instruct, n=150)
 
 | strategy | 1.5B (n=354, full pool) | 7B (n=150) |

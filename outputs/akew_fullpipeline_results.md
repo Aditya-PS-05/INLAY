@@ -1,5 +1,15 @@
 # Full non-oracle pipeline test, and a real router bug found and fixed — 2026-08-19
 
+> **Configuration note (added 2026-08-20).** Every number on this page was
+> produced with the **legacy fixed-gate router**, before the reliability head
+> existed. `akew_fullpipeline_eval.py` now enables the adaptive router by
+> default when the head artifact is present, so a fresh run will NOT reproduce
+> the MQuAKE-CF figures below — it will produce the better ones recorded in
+> `akew_reliability_head_results.md` (+15.9 points on unstructured/extracted).
+> To reproduce this page exactly, run with `AKEW_RELIABILITY_HEAD=""`. Every
+> result now carries an `adaptive_router` flag in its JSON so no accuracy can
+> be read without knowing which router produced it.
+
 Every answering-strategy result reported so far in this project used
 **oracle retrieval** — the true card handed directly, deliberately isolating
 the answering-strategy question from retrieval noise (brief's oracle
