@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"
+     role="img" aria-label="INLAY logo: a contrasting piece set flush into a layered surface">
+  <title>INLAY</title>
+
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#162623"/>
+      <stop offset="1" stop-color="#0d1917"/>
+    </linearGradient>
+    <linearGradient id="inset" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5cbfb1"/>
+      <stop offset="1" stop-color="#3f9f96"/>
+    </linearGradient>
+    <clipPath id="tileclip">
+      <rect x="0" y="0" width="128" height="128" rx="29"/>
+    </clipPath>
+  </defs>
+
+  <!-- the surface: a frozen, layered substrate -->
+  <rect x="0" y="0" width="128" height="128" rx="29" fill="url(#tile)"/>
+
+  <g clip-path="url(#tileclip)">
+    <!-- untouched strata -->
+    <g fill="#33514c">
+      <rect x="22" y="26" width="84" height="11" rx="3.5"/>
+      <rect x="22" y="70" width="84" height="11" rx="3.5"/>
+      <rect x="22" y="92" width="84" height="11" rx="3.5"/>
+    </g>
+
+    <!-- the inlaid row: the surrounding material is CUT, not covered.
+         Left stub + seam gap + the inset piece, all on one baseline so the
+         piece sits flush rather than on top. -->
+    <rect x="22" y="48" width="24" height="11" rx="3.5" fill="#33514c"/>
+    <rect x="51" y="48" width="55" height="11" rx="3.5" fill="url(#inset)"/>
+
+    <!-- seam: the hairline where new material meets old -->
+    <rect x="47.4" y="47" width="1.2" height="13" fill="#0d1917" opacity="0.9"/>
+
+    <!-- the address: a pointer into the inlaid row -->
+    <circle cx="97" cy="53.5" r="2.6" fill="#0d1917" opacity="0.55"/>
+  </g>
+
+  <!-- bevel, so the tile reads as a solid object -->
+  <rect x="0.75" y="0.75" width="126.5" height="126.5" rx="28.4"
+        fill="none" stroke="#5cbfb1" stroke-opacity="0.16" stroke-width="1.5"/>
+</svg>
