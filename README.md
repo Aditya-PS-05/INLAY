@@ -96,13 +96,11 @@ CounterFact, structured input, GPT-J-6B, n=147. Two of those results are failure
 
 ### Write cost
 
-![Write cost](paper/figures/fig3_write_cost.png)
-
-This is the systems argument, and it is not marginal. Inserting a row is not a cheaper optimisation — it is the absence of one.
+INLAY writes in **5–15 ms with no gradient step**, against seconds for gradient-based editors — roughly **1600× cheaper**. This is the systems argument, and it is not marginal: inserting a row is not a cheaper optimisation, it is the absence of one. (The mechanism producing that number is panel (b) of the architecture figure above — the intervention is one bias term added at the final decoding step, not a search or an update rule.)
 
 ### Multi-hop
 
-![Multi-hop](paper/figures/fig5_multihop.png)
+![Multi-hop](paper/figures/fig4_multihop.png)
 
 The first iterative multi-hop loop scored **5.0%** against a naive baseline's 22.5% — more than four times *worse* than doing nothing clever. Every sampled failure produced no answer at all, which pointed at termination rather than accuracy.
 
@@ -116,11 +114,13 @@ Treating a retrieval miss as "answer this hop from base knowledge and **continue
 
 Retrieval-based editors of this family all include a **scope decision**: given a query, does a stored edit apply, and what should be done about it? I built increasingly careful machinery for that decision, measured statistically significant gains from it, and then found the gains were not what they appeared.
 
-![Routing headroom](paper/figures/fig4_headroom.png)
+![Routing headroom](paper/figures/fig3_headroom.png)
 
 For 1,689 queries spanning all three datasets and all three input conditions, I executed **every candidate action** and scored the result, giving per-query ground truth for which actions actually work.
 
 **An oracle router that picks the best available action on every query is exactly equal to a one-line static policy** — "recite directly where that is legal, otherwise reason over the retrieved evidence." Identical to four decimal places in all nine cells. The maximum possible gain of any per-query routing method, learned or otherwise, over one line of code is **0.00 points**.
+
+![Per-action success rates](paper/figures/fig5_actions.png)
 
 The mechanism is stark. Abstention succeeded on 19 of 1,689 queries, and on all 19, reasoning or direct recitation succeeded too. **Abstention is the sole winning action zero times.**
 
@@ -192,7 +192,7 @@ python src/akew_headroom.py "outputs/outcome_labels_*.json"
 
 # rebuild every figure and the paper
 python paper/make_figures.py
-cd paper && pandoc paper.md -o paper.pdf --pdf-engine=xelatex --toc --toc-depth=2
+cd paper && xelatex paper.tex && bibtex paper && xelatex paper.tex && xelatex paper.tex
 ```
 
 Self-tests, no GPU required:
@@ -240,7 +240,7 @@ One implementation note that materially affects correctness: `BaseEditor.edit(se
 
 ## Paper
 
-The full write-up is [`paper/paper.pdf`](./paper/paper.pdf) — 12 pages, source in [`paper/paper.md`](./paper/paper.md). It covers the method, the five-way baseline comparison, the multi-hop fix, the routing investigation *and its refutation*, and what the benchmark finding means for the field.
+The full write-up is [`paper/paper.pdf`](./paper/paper.pdf) — 6 pages, two-column, source in [`paper/paper.tex`](./paper/paper.tex) with references in [`paper/refs.bib`](./paper/refs.bib). It covers the method, the five-way baseline comparison, the multi-hop fix, the routing investigation *and its refutation*, and what the benchmark finding means for the field.
 
 ## Acknowledgments
 
