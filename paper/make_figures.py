@@ -31,7 +31,10 @@ import numpy as np
 OUT = pathlib.Path(__file__).resolve().parent / "figures"
 OUT.mkdir(exist_ok=True)
 
-COL, FULL = 3.35, 6.95          # inches: one column, full text width
+# ACL style (acl.sty): A4, 2.5cm margins, twocolumn, columnsep 0.6cm.
+# textwidth = 21cm - 2*2.5cm = 16cm; column width = (16cm - 0.6cm)/2 = 7.7cm.
+CM = 1 / 2.54
+COL, FULL = 7.7 * CM, 16.0 * CM   # inches: one column (3.031in), full text width (6.299in)
 
 INK, MUTED, FAINT = "#1a1a1a", "#5f5f5f", "#cfcfcf"
 NEUTRAL, ACCENT = "#a9a9a9", "#12615a"

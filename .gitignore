@@ -9,3 +9,14 @@ outputs/akew_verifier_ckpt_v2/
 outputs/akew_verifier_ablation_random/
 outputs/akew_verifier_ablation_specificity/
 .venv-paper/
+
+# LaTeX build artifacts (paper/paper.pdf IS tracked; these are intermediates)
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/_preview/

@@ -1,0 +1,26 @@
+# Pinned dependency versions used to reproduce this project's paper numbers
+# and to run the six self-tests (src/akew_stats_test.py,
+# src/akew_reliability_test.py, src/akew_outcome_head_test.py,
+# tests/test_gate_consistency.py, tests/test_pk_capacity.py,
+# tests/test_akew_leakage.py).
+#
+# These are PINS FOR REPRODUCIBILITY, not hard minimum-version requirements —
+# later versions of most of these packages will work fine for the self-tests;
+# the pins exist so a fresh environment reproduces the exact numbers reported
+# in paper/paper.tex and outputs/*.md rather than drifting with upstream
+# releases. Derived directly from `grep -RhE '^\s*(import|from)' src/*.py
+# tests/*.py`, not guessed.
+#
+# NOT required for the six self-tests but used elsewhere in src/ (the GPU
+# evaluation scripts that produced the paper's headline numbers, e.g.
+# eval_cf_*.py, eval_zsre_*.py, bench_*.py):
+#   - easyeditor (EasyEdit, https://github.com/zjunlp/EasyEdit) — install
+#     from source per that repo's instructions; not on PyPI as a stable
+#     pinned release at the time of writing.
+
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.1
+torch==2.4.1
+transformers==4.44.2
+sentence-transformers==3.0.1
