@@ -1,11 +1,11 @@
 """
-Portability / ripple probe on CounterFact (GPT-J-6B) for CAKE, base, RAG.
+Portability / ripple probe on CounterFact (GPT-J-6B) for INLAY, base, RAG.
 Standard efficacy (ES) tests the edit prompt; paraphrase (PS) tests ONE reworded
 version. Portability tests whether the edit survives MANY alternate framings of the
 same fact — CounterFact's `generation_prompts`, e.g. edit "The mother tongue of X is
 -> English", probe "Where X is from, people speak the language of ___" (expect English).
 This is the axis where a retrieval method that keys on the exact prompt is expected to
-be weakest, so it is the honest stress test of CAKE's design.
+be weakest, so it is the honest stress test of INLAY's design.
 
   ES   = token-acc of target_new on the edit prompt (efficacy, sanity)
   PORT = mean token-acc of target_new across all generation_prompts (portability)
@@ -17,7 +17,7 @@ import sys, json, random, torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
-METHOD = sys.argv[1] if len(sys.argv) > 1 else "cake"
+METHOD = sys.argv[1] if len(sys.argv) > 1 else "inlay"
 MODEL = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 N = int(sys.argv[3]) if len(sys.argv) > 3 else 100
 ALPHA = float(sys.argv[4]) if len(sys.argv) > 4 else 20.0
@@ -32,7 +32,7 @@ def rp(r):
     rw = r["requested_rewrite"]
     return rw["prompt"].format(rw["subject"]), rw["target_new"]["str"], rw["subject"], r["generation_prompts"]
 
-if METHOD == "cake":
+if METHOD == "inlay":
     sys.path.insert(0, "src")
     from gpt2_memory_semkey import GPT2WithSemanticMemory
     g = GPT2WithSemanticMemory(MODEL, layer=0, alpha=ALPHA, n_slots_per_subkey=4096,
@@ -70,7 +70,7 @@ for r in recs:
     ES += acc(p, tn)
     for gp in gens: PORT += acc(gp, tn); nG += 1
 
-result = {"method": METHOD, "model": MODEL, "n": len(recs), "alpha": ALPHA if METHOD=="cake" else None,
+result = {"method": METHOD, "model": MODEL, "n": len(recs), "alpha": ALPHA if METHOD=="inlay" else None,
           "ES": round(ES/len(recs),4), "portability": round(PORT/nG,4), "n_gen_probes": nG,
           "gpu": torch.cuda.get_device_name(0) if DEV=="cuda" else None}
 print("<<<JSON>>>"); print(json.dumps(result)); print("<<<END>>>")

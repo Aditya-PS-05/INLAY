@@ -1,8 +1,8 @@
 """
 CounterFact single-edit for WISE / GRACE on GPT-J-6B via EasyEdit native metrics.
-These are the memory/adapter-based sequential editors — CAKE's real conceptual
+These are the memory/adapter-based sequential editors — INLAY's real conceptual
 rivals. Same protocol/metric as eval_cf_edit_gptj.py (ES=rewrite_acc, PS=rephrase,
-NS=locality neighborhood_acc) so numbers compare directly to CAKE/ROME on GPT-J.
+NS=locality neighborhood_acc) so numbers compare directly to INLAY/ROME on GPT-J.
 Run from EasyEdit/. Usage: python eval_cf_wise_grace.py WISE|GRACE <N>
 Emits one JSON blob between <<<JSON>>> markers.
 """

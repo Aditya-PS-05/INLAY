@@ -1,5 +1,5 @@
 """
-CounterFact single-edit protocol for base / in_context(RAG) / CAKE / finetune,
+CounterFact single-edit protocol for base / in_context(RAG) / INLAY / finetune,
 scored with EasyEdit's OWN metric (teacher-forcing token accuracy) so the numbers
 are directly comparable to the ROME/MEMIT columns from eval_cf_edit.py:
 
@@ -9,7 +9,7 @@ are directly comparable to the ROME/MEMIT columns from eval_cf_edit.py:
                        UNCHANGED vs the pre-edit model (specificity)
 
 Score = harmonic mean(ES, PS, NS). One fact installed per record (single-edit).
-Usage: python eval_cf.py <method> <model_path> <N> [cake_layer cake_alpha]
+Usage: python eval_cf.py <method> <model_path> <N> [inlay_layer inlay_alpha]
 Emits one JSON blob between <<<JSON>>> markers.
 """
 import sys, time, json, random, torch
@@ -22,9 +22,9 @@ DEV = "cuda" if torch.cuda.is_available() else "cpu"
 METHOD = sys.argv[1] if len(sys.argv) > 1 else "base"
 MODEL = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 N = int(sys.argv[3]) if len(sys.argv) > 3 else 100
-CAKE_LAYER = int(sys.argv[4]) if len(sys.argv) > 4 else 24
-CAKE_ALPHA = float(sys.argv[5]) if len(sys.argv) > 5 else 10.0
-CAKE_GATE = 0.9
+INLAY_LAYER = int(sys.argv[4]) if len(sys.argv) > 4 else 24
+INLAY_ALPHA = float(sys.argv[5]) if len(sys.argv) > 5 else 10.0
+INLAY_GATE = 0.9
 FT_STEPS = 25
 
 random.seed(0)
@@ -40,7 +40,7 @@ def token_acc(logits_fn, prompt, target):
     """Teacher-forcing token accuracy of `target` after `prompt`, EasyEdit-style:
     feed prompt+target, at each target position check argmax == gold token.
     logits_fn(full_ids, n_prompt_tokens)->(T,vocab). n_prompt_tokens lets a
-    method (CAKE) address its memory on the PROMPT portion only, not the whole
+    method (INLAY) address its memory on the PROMPT portion only, not the whole
     teacher-forced sequence."""
     pids = tok(prompt, return_tensors="pt").input_ids[0]
     tids = tgt_ids(target)
@@ -82,17 +82,17 @@ if METHOD in ("base", "in_context"):
             NS += float(pred_token(lf, (pre+npr) if METHOD=="in_context" else npr) == base_pred[npr]); nN += 1
     result["write_s"] = 0.0; result["grad_steps"] = 0
 
-# ---------- CAKE ----------
-elif METHOD == "cake":
-    g = GPT2WithMemory(MODEL, layer=CAKE_LAYER, alpha=CAKE_ALPHA, n_slots_per_subkey=4096, topk=1)
+# ---------- INLAY ----------
+elif METHOD == "inlay":
+    g = GPT2WithMemory(MODEL, layer=INLAY_LAYER, alpha=INLAY_ALPHA, n_slots_per_subkey=4096, topk=1)
     twrite = 0.0
     @torch.no_grad()
     def base_lf(ids, n_prompt=None): g.set_read(False); return g.model(input_ids=ids).logits[0]
     @torch.no_grad()
-    def cake_lf(ids, n_prompt):
-        """Gated CAKE logits, teacher-forcing-aware. Address the memory using the
+    def inlay_lf(ids, n_prompt):
+        """Gated INLAY logits, teacher-forcing-aware. Address the memory using the
         PROMPT's last-token h_L (position n_prompt-1) — NOT the last token of the
-        teacher-forced target — because CAKE keys on the prompt. If the top slot
+        teacher-forced target — because INLAY keys on the prompt. If the top slot
         fires >= gate, add alpha*<W_U,v> to every position's logits; else base."""
         # 1) address on prompt only
         g.set_read(True); g._inject_budget = 0
@@ -105,7 +105,7 @@ elif METHOD == "cake":
         # 2) full forward for logits (read off so it doesn't re-address on target)
         g.set_read(False); g._inject_budget = None
         out = g.model(input_ids=ids).logits[0]     # (T,vocab)
-        if top is None or top[1] < CAKE_GATE or v is None:
+        if top is None or top[1] < INLAY_GATE or v is None:
             return out
         if v.dim() == 1: v = v.unsqueeze(0)
         return out + g.alpha * (v @ g.W_U.T)        # broadcast answer-token bias
@@ -113,14 +113,14 @@ elif METHOD == "cake":
         p, tn, tt, paras, neigh = record_prompts(r)
         base_pred = {npr: pred_token(base_lf, npr) for npr in neigh}
         t0 = time.time(); g.mem.clear_all(); g.write_chunk(p, tn); twrite += time.time()-t0
-        ES += token_acc(cake_lf, p, tn)
+        ES += token_acc(inlay_lf, p, tn)
         for pp in paras:
-            PS += token_acc(cake_lf, pp, tn); nP += 1
+            PS += token_acc(inlay_lf, pp, tn); nP += 1
         for npr in neigh:
-            NS += float(pred_token(cake_lf, npr) == base_pred[npr]); nN += 1
+            NS += float(pred_token(inlay_lf, npr) == base_pred[npr]); nN += 1
     g.close()
     result["write_s"] = round(twrite, 4); result["grad_steps"] = 0
-    result["cake_layer"] = CAKE_LAYER; result["cake_alpha"] = CAKE_ALPHA; result["gate"] = CAKE_GATE
+    result["inlay_layer"] = INLAY_LAYER; result["inlay_alpha"] = INLAY_ALPHA; result["gate"] = INLAY_GATE
 
 # ---------- FINE-TUNE (per-record single edit, weight reset) ----------
 elif METHOD == "finetune":

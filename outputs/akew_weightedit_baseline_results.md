@@ -15,7 +15,7 @@ session (`sequential_edit=True` + explicit state_dict snapshot/restore under
 harness control), specifically to avoid the exact weight-restore-before-
 return bug already found and fixed once. Scored with AKEW's own `is_hit`
 convention (substring + alias match against gold), not EasyEdit's internal
-metrics, for direct comparability with every CAKE/RAG/IKE number in this
+metrics, for direct comparability with every INLAY/RAG/IKE number in this
 project.
 
 Smoke-tested first (N=5, ROME): edit_ok 5/5, EasyEdit's own internal
@@ -29,7 +29,7 @@ based scoring before any full run was trusted.
 | ROME | 147/147 | 83.67% |
 | MEMIT | 147/147 | 83.67% (identical to ROME) |
 | AlphaEdit | 147/147 | 89.12% |
-| CAKE (routed pipeline, same test set) | -- | **100.0%** |
+| INLAY (routed pipeline, same test set) | -- | **100.0%** |
 
 AlphaEdit's edge over ROME/MEMIT (89.12% vs 83.67%) is consistent with its
 own design: the null-space-constrained update is specifically built to be
@@ -96,17 +96,17 @@ doesn't control for paraphrase distance from the training prompt.
 | AlphaEdit | 147/147 | 89.12% |
 | WISE | 141/147 | 66.67% |
 | GRACE | 0/5 (smoke test) | **N/A -- edits don't land under this harness's real-generation scoring** |
-| CAKE (routed pipeline, same test set) | -- | **100.0%** |
+| INLAY (routed pipeline, same test set) | -- | **100.0%** |
 
 ## Reading across all five
 
 Ranked by accuracy: AlphaEdit (89.12%) > ROME = MEMIT (83.67%) > WISE
 (66.67%) > GRACE (effectively 0%, edits don't land at all under real
-generation). CAKE's retrieval+verification+routing approach beats every
+generation). INLAY's retrieval+verification+routing approach beats every
 weight-editing baseline on this identical test split, and the gap is not
 close for the two methods (WISE, GRACE) whose editing mechanism depends on
 something being correctly *retrieved* at generation time -- the exact
-failure mode CAKE's own verifier/router machinery is built to guard
+failure mode INLAY's own verifier/router machinery is built to guard
 against. AlphaEdit's null-space-constrained in-place update is the
 strongest of the five weight-editors here, consistent with it being the
 most surgical, least representation-disrupting of the group; WISE and

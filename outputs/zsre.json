@@ -44,7 +44,7 @@
   "write_s": 4.3682,
   "grad_steps": 100
  },
- "CAKE_v2_semkey": {
+ "INLAY_v2_semkey": {
   "ES": 0.5285,
   "PS": 0.5218,
   "NS": 1.0,
@@ -98,17 +98,17 @@
     "write_s": 0.2871
    }
   },
-  "superseded_by": "CAKE_v3_multitoken (multi-token value fix)"
+  "superseded_by": "INLAY_v3_multitoken (multi-token value fix)"
  },
  "notes": {
-  "CAKE_v2": "efficacy capped ~0.53 by zsRE's free-form MULTI-TOKEN answers (value stores only the first answer-token direction). Addressing fix HOLDS: PS 0.52 ~= ES 0.53 (paraphrases generalize as well as originals), NS 1.00 (perfect locality). The limit is the VALUE representation, not the key.",
+  "INLAY_v2": "efficacy capped ~0.53 by zsRE's free-form MULTI-TOKEN answers (value stores only the first answer-token direction). Addressing fix HOLDS: PS 0.52 ~= ES 0.53 (paraphrases generalize as well as originals), NS 1.00 (perfect locality). The limit is the VALUE representation, not the key.",
   "ROME": "wins (0.908): near-perfect efficacy, strong on all axes, as published on zsRE.",
   "MEMIT": "weak single-edit (0.346) \u2014 batch method; partial token credit on multi-token targets gives ES 0.28 (vs 0 on CounterFact's single-token answers).",
   "finetune": "NS collapses to 0.01 \u2014 catastrophic forgetting, same as CounterFact.",
   "in_context": "RAG strong (0.887).",
-  "CAKE_v3": "multi-token value fix: logit-space PLAYBACK of the full stored answer sequence (position-wise), replacing first-token-only value. Lifts zsRE ES/PS from 0.53/0.52 to 0.96/0.96 -> score 0.973, now BEST on zsRE (> ROME 0.908). Still zero-gradient; addressing unchanged."
+  "INLAY_v3": "multi-token value fix: logit-space PLAYBACK of the full stored answer sequence (position-wise), replacing first-token-only value. Lifts zsRE ES/PS from 0.53/0.52 to 0.96/0.96 -> score 0.973, now BEST on zsRE (> ROME 0.908). Still zero-gradient; addressing unchanged."
  },
- "CAKE_v3_multitoken": {
+ "INLAY_v3_multitoken": {
   "ES": 0.96,
   "PS": 0.96,
   "NS": 1.0,

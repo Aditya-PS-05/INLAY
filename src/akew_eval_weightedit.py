@@ -1,6 +1,6 @@
 """
 Weight-editing baselines on AKEW (brief section 6, methods 1/3-8 in the
-CAKE-family sense, here specifically the competing weight-editors ROME/MEMIT/
+INLAY-family sense, here specifically the competing weight-editors ROME/MEMIT/
 AlphaEdit/WISE/GRACE via EasyEdit).
 
 STRUCTURED MODE ONLY, by design, not an oversight: weight-editing methods

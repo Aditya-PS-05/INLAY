@@ -1,6 +1,6 @@
 """
-CAKE CounterFact eval on GPT-J-6B (fp16), held-out gate-selection protocol.
-Ports CAKE (semantic key + multi-token playback) to the 6B tier. Because the
+INLAY CounterFact eval on GPT-J-6B (fp16), held-out gate-selection protocol.
+Ports INLAY (semantic key + multi-token playback) to the 6B tier. Because the
 semantic key is a MiniLM embedding (not a hidden state), NO layer retuning is
 needed vs GPT-2-XL; only the base model and its dtype change. alpha is swept
 lightly since W_U scale differs across models.
@@ -69,7 +69,7 @@ tune_curve = {gt: eval_split(tune, gt) for gt in GATES}
 best_gate = max(tune_curve.items(), key=lambda kv: kv[1]["score_hm"])[0]
 test_result = eval_split(test, best_gate)
 
-out = {"method":"CAKE-gptj","model":MODEL,"n_tune":len(tune),"n_test":len(test),
+out = {"method":"INLAY-gptj","model":MODEL,"n_tune":len(tune),"n_test":len(test),
        "metric":"token-accuracy ES/PS/NS","alpha":ALPHA,"load_s":round(load_s,2),
        "selected_gate":best_gate,"rel_gate":REL_GATE,"tune_curve":tune_curve,"test":test_result,
        "gpu":torch.cuda.get_device_name(0) if DEV=="cuda" else None}

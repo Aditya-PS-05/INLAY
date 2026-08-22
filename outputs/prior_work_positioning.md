@@ -1,8 +1,8 @@
-# CAKE — prior-work positioning & novelty map
+# INLAY — prior-work positioning & novelty map
 
-Purpose: before spending more compute, pin down exactly what CAKE is against the published editing
+Purpose: before spending more compute, pin down exactly what INLAY is against the published editing
 literature — what to cite, what to differentiate, and which novelty claims survive contact with the
-field. Verdict up front: **the core mechanism is genuinely distinct, but CAKE sits inside an existing
+field. Verdict up front: **the core mechanism is genuinely distinct, but INLAY sits inside an existing
 family (memory/retrieval-based editing), so novelty must be claimed at the mechanism level, not the
 paradigm level.** Overclaiming "first non-parametric editor" against SERAC/GRACE would draw an immediate
 reject.
@@ -18,7 +18,7 @@ reject.
   into the null space of preserved knowledge to protect locality in sequential editing. Our runs:
   locality-first (NS 0.98), under-installs single edits (ES 0.46). The abstract's own framing —
   "perturbation inevitably disrupts preserved knowledge, especially in sequential editing" — is precisely
-  the failure mode CAKE avoids by never touching weights.
+  the failure mode INLAY avoids by never touching weights.
 
 **2. Meta-learning a weight update.** MEND, KnowledgeEditor (train a hypernetwork to produce the edit).
 Not run here; cite as a distinct branch.
@@ -28,13 +28,13 @@ Not run here; cite as a distinct branch.
 - **MELO** (2024, AAAI) — neuron-indexed dynamic LoRA blocks keyed by an inner index.
 - **GRACE** — *Aging with GRACE: Lifelong Model Editing with Discrete Key-Value Adaptors* (2022). A
   codebook of discrete key→value adaptors at one layer; activates only when a runtime activation lands
-  within eps of a stored key. **This is CAKE's closest structural relative** (discrete addressable
+  within eps of a stored key. **This is INLAY's closest structural relative** (discrete addressable
   memory, non-destructive) and must be differentiated carefully (below).
 
 **4. Memory / retrieval-based, model frozen (non-parametric).**
 - **SERAC** — *Memory-Based Model Editing at Scale* (2022). Stores edits in an explicit memory; a learned
   **scope classifier** decides whether a query is in-scope, and a separate **counterfactual model**
-  generates the answer. Frozen base model. **This is the paradigm CAKE belongs to** — must be the primary
+  generates the answer. Frozen base model. **This is the paradigm INLAY belongs to** — must be the primary
   differentiation target.
 - **WISE** — *Rethinking the Knowledge Memory for Lifelong Editing* (2024). A side-memory of edits with a
   routing/retrieval activation; merges edit knowledge into a copied FFN subspace. Our runs: perfect
@@ -48,17 +48,17 @@ portability (RippleEdits aggregate 0.393 — it *reasons over* the fact), modera
 
 **Evaluation lineage (cite as the metrics we adopt).** ROME/MEMIT introduced ES/PS/NS. **RippleEdits**
 (2024, TACL) and **MQuAKE** (2023) argued single-fact metrics are insufficient and introduced
-compositional/multi-hop ripple criteria — the axis on which we honestly report CAKE's ceiling.
+compositional/multi-hop ripple criteria — the axis on which we honestly report INLAY's ceiling.
 
 **Backbone.** The addressable table is a **Product-Key Memory** (*Large Memory Layers with Product Keys*,
 2019) — cite as the memory architecture we repurpose (they used it to add capacity during pretraining; we
 use it as a zero-gradient edit store).
 
-## Where CAKE actually sits, and how it differs from its nearest neighbors
+## Where INLAY actually sits, and how it differs from its nearest neighbors
 
-CAKE is family **#4 (memory/retrieval, frozen model)**. The three methods it must beat on differentiation:
+INLAY is family **#4 (memory/retrieval, frozen model)**. The three methods it must beat on differentiation:
 
-| | SERAC (2022) | GRACE (2022) | WISE (2024) | **CAKE (ours)** |
+| | SERAC (2022) | GRACE (2022) | WISE (2024) | **INLAY (ours)** |
 |---|---|---|---|---|
 | base model | frozen | frozen (1 layer patched) | copied FFN subspace | **frozen** |
 | memory | edit store + models | discrete codebook @ layer | side FFN memory | **product-key table** |
@@ -71,13 +71,13 @@ CAKE is family **#4 (memory/retrieval, frozen model)**. The three methods it mus
 
 1. **Logit-space playback as the edit-application mechanism.** SERAC routes to a separate generator;
    GRACE replaces a hidden activation; WISE merges an FFN subspace; ROME/MEMIT/AlphaEdit perturb weights.
-   CAKE instead **adds the stored answer tokens' unembedding directions directly to the output logits at
+   INLAY instead **adds the stored answer tokens' unembedding directions directly to the output logits at
    the scored positions.** No auxiliary model, no activation surgery, no weight change. This is, to our
    knowledge, a mechanism not used by the above. *Claim: a new, minimal edit-application operator.*
 
 2. **A training-free semantic address.** GRACE keys on raw hidden activations (which we measured are
    subject/topic-entangled — separation −0.035 for paraphrase-vs-neighbor); SERAC/WISE **train** their
-   scope/routing. CAKE keys on a **frozen MiniLM sentence embedding passed through a fixed seeded JL
+   scope/routing. INLAY keys on a **frozen MiniLM sentence embedding passed through a fixed seeded JL
    projection** — no learned parameters in the addressing path — and this alone moved CounterFact 0.33→0.90
    and beat WISE's exact-store paraphrase generalization. *Claim: paraphrase-robust addressing with zero
    trained components.*
@@ -101,7 +101,7 @@ CAKE is family **#4 (memory/retrieval, frozen model)**. The three methods it mus
 
 Title direction: *"Editing without gradients: logit-space playback from a semantically-addressed memory."*
 Thesis: **editing has two regimes — direct/sequential fact installation vs. compositional propagation —
-that reward opposite mechanisms; CAKE is SOTA on the first at near-zero cost, and we map precisely where
+that reward opposite mechanisms; INLAY is SOTA on the first at near-zero cost, and we map precisely where
 and why store-and-retrieve concedes the second.** This turns the RippleEdits result from a liability into
 the paper's most honest and memorable contribution.
 

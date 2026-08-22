@@ -1,9 +1,9 @@
 """
-zsRE single-edit eval (model-agnostic, fp16) for base / in_context(RAG) / CAKE.
+zsRE single-edit eval (model-agnostic, fp16) for base / in_context(RAG) / INLAY.
 Same token-accuracy metric as the CounterFact scale scripts.
   ES = token-acc of `alt` after `src`;  PS = after `rephrase`;
   NS = fraction of `loc` prompts whose predicted first token is UNCHANGED vs pre-edit.
-Score = harmonic mean(ES,PS,NS). CAKE = semantic-key v3 (multi-token playback);
+Score = harmonic mean(ES,PS,NS). INLAY = semantic-key v3 (multi-token playback);
 gate swept on a capped TUNE split, reported on disjoint TEST split.
 Usage: python eval_zsre_scale.py <method> <model_path> <N> [alpha] [gate]
 """
@@ -16,7 +16,7 @@ METHOD = sys.argv[1] if len(sys.argv) > 1 else "base"
 MODEL  = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 N      = int(sys.argv[3]) if len(sys.argv) > 3 else 100
 ALPHA  = float(sys.argv[4]) if len(sys.argv) > 4 else 20.0
-CAKE_GATES = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55]
+INLAY_GATES = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55]
 
 random.seed(0)
 ZS = json.load(open("data/zsre.json"))
@@ -64,11 +64,11 @@ if METHOD in ("base", "in_context"):
     result.update({"ES":round(es,4),"PS":round(ps,4),"NS":round(ns,4),"score_hm":round(hm(es,ps,ns),4),
                    "write_s":0.0,"grad_steps":0})
 
-elif METHOD == "cake":
+elif METHOD == "inlay":
     from gpt2_memory_semkey import GPT2WithSemanticMemory
     g = GPT2WithSemanticMemory(MODEL, layer=0, alpha=ALPHA,
                                n_slots_per_subkey=4096, key_mode="prompt", model_dtype=torch.float16)
-    def cake_acc(prompt, target, gate):
+    def inlay_acc(prompt, target, gate):
         pids = tok(prompt, return_tensors="pt").input_ids[0]
         tids = tgt_ids(target)
         full = torch.cat([pids, tids]).unsqueeze(0).to(DEV)
@@ -76,7 +76,7 @@ elif METHOD == "cake":
         start = len(pids)-1
         preds = logits[start:start+len(tids)].argmax(-1).cpu()
         return float((preds==tids).float().mean())
-    def cake_pred(prompt, gate):
+    def inlay_pred(prompt, gate):
         pids = tok(prompt, return_tensors="pt").input_ids.to(DEV)
         logits,_,_ = g.gated_logits(pids, pids.shape[1], gate)
         return int(logits[-1].argmax())
@@ -84,15 +84,15 @@ elif METHOD == "cake":
         ES=PS=NS=0.0; nN=0; tw=0.0
         for r in split:
             src, reph, alt, loc = rp(r)
-            base_loc = cake_pred(loc, 99.0)
+            base_loc = inlay_pred(loc, 99.0)
             t0=time.time(); g.mem.clear_all(); g.write_chunk(src, alt); tw+=time.time()-t0
-            ES += cake_acc(src, alt, gate)
-            PS += cake_acc(reph, alt, gate)
-            NS += float(cake_pred(loc, gate)==base_loc); nN+=1
+            ES += inlay_acc(src, alt, gate)
+            PS += inlay_acc(reph, alt, gate)
+            NS += float(inlay_pred(loc, gate)==base_loc); nN+=1
         es,ps,ns = ES/len(split), PS/len(split), NS/nN
         return {"ES":round(es,4),"PS":round(ps,4),"NS":round(ns,4),"score_hm":round(hm(es,ps,ns),4),"write_s":round(tw,4)}
     TUNE_N = min(500, N//2); tune,test = recs[:TUNE_N], recs[TUNE_N:]
-    tune_curve={gt:eval_split(tune,gt) for gt in CAKE_GATES}
+    tune_curve={gt:eval_split(tune,gt) for gt in INLAY_GATES}
     best=max(tune_curve.items(),key=lambda kv:kv[1]["score_hm"])[0]
     test_res=eval_split(test,best)
     result.update({"selected_gate":best,"n_tune":len(tune),"n_test":len(test),

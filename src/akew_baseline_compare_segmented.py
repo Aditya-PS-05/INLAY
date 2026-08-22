@@ -1,14 +1,14 @@
 """
 Follow-up to akew_baseline_compare.py's WikiUpdate unstructured result (plain
-IKE 46.88% beating CAKE routed 43.75%), which looked like it contradicted
-akew_cake_plus_ike_eval.py's finding that demonstrations HURT when folded
-into CAKE's own REASON path (43.75% -> 40.62%). Both use the identical
+IKE 46.88% beating INLAY routed 43.75%), which looked like it contradicted
+akew_inlay_plus_ike_eval.py's finding that demonstrations HURT when folded
+into INLAY's own REASON path (43.75% -> 40.62%). Both use the identical
 random-demonstration mechanism (akew_baseline_ike.build_demonstrations,
 n=2, seed=0), so the difference must be structural, not mechanism-level:
-CAKE+IKE only adds demos to REASON-routed queries (leaving REJECT queries
+INLAY+IKE only adds demos to REASON-routed queries (leaving REJECT queries
 untouched, answer_no_context in both conditions); plain IKE retrieves+demos
-on EVERY query unconditionally, including the ones CAKE's router would
-REJECT. This script segments plain CAKE/RAG/IKE accuracy by the router's
+on EVERY query unconditionally, including the ones INLAY's router would
+REJECT. This script segments plain INLAY/RAG/IKE accuracy by the router's
 own REJECT vs non-REJECT decision on the identical test split, to test the
 hypothesis directly rather than inferring it.
 
@@ -60,15 +60,15 @@ for c in test:
     is_reject = (decision.decision == "REJECT")
 
     if is_reject:
-        cake_ans = answer_no_context(model, tok, q, device)
+        inlay_ans = answer_no_context(model, tok, q, device)
     else:
         routed_card = next((cc for cc in cards if cc.edit_id == decision.card_id), None)
         if decision.decision == "DIRECT":
             from akew_answering import answer_hard_playback
-            cake_ans = answer_hard_playback(routed_card, golds.get(decision.card_id))
+            inlay_ans = answer_hard_playback(routed_card, golds.get(decision.card_id))
         else:
-            cake_ans = answer_contextual(model, tok, q, routed_card, device) if routed_card else ""
-    cake_hit = is_hit(cake_ans, g)
+            inlay_ans = answer_contextual(model, tok, q, routed_card, device) if routed_card else ""
+    inlay_hit = is_hit(inlay_ans, g)
 
     top1 = index.query(q, topk=1)
     if top1:
@@ -80,7 +80,7 @@ for c in test:
     rag_hit = is_hit(rag_ans, g)
     ike_hit = is_hit(ike_ans, g)
 
-    rows.append({"is_reject": is_reject, "cake_hit": cake_hit, "rag_hit": rag_hit, "ike_hit": ike_hit})
+    rows.append({"is_reject": is_reject, "inlay_hit": inlay_hit, "rag_hit": rag_hit, "ike_hit": ike_hit})
 
 def seg_acc(subset, key):
     if not subset:
@@ -94,17 +94,17 @@ out = {
     "dataset": DATASET, "input_mode": MODE, "n": len(rows), "model": MODEL_NAME,
     "n_reject": len(reject_rows), "n_nonreject": len(nonreject_rows),
     "overall": {
-        "cake_routed": seg_acc(rows, "cake_hit"),
+        "inlay_routed": seg_acc(rows, "inlay_hit"),
         "plain_rag": seg_acc(rows, "rag_hit"),
         "plain_ike": seg_acc(rows, "ike_hit"),
     },
     "reject_subset": {
-        "cake_routed": seg_acc(reject_rows, "cake_hit"),
+        "inlay_routed": seg_acc(reject_rows, "inlay_hit"),
         "plain_rag": seg_acc(reject_rows, "rag_hit"),
         "plain_ike": seg_acc(reject_rows, "ike_hit"),
     },
     "nonreject_subset": {
-        "cake_routed": seg_acc(nonreject_rows, "cake_hit"),
+        "inlay_routed": seg_acc(nonreject_rows, "inlay_hit"),
         "plain_rag": seg_acc(nonreject_rows, "rag_hit"),
         "plain_ike": seg_acc(nonreject_rows, "ike_hit"),
     },

@@ -8,7 +8,7 @@
   "score_hm": "harmonic mean(retention, locality)"
  },
  "methods": {
-  "cake": [
+  "inlay": [
    {
     "n": 1,
     "retention": 1.0,
@@ -228,7 +228,7 @@
   ]
  },
  "notes": {
-  "CAKE": "retention flat at ~1.0 through N=400 (each fact -> separate memory slot, zero weight change, no inter-edit interference). Locality degrades gently (1.0->0.55 at N=400) because a larger populated memory has more chances for a control prompt to exceed the fixed gate 0.45. 400 edits written in 1.8 s, 0 gradient steps.",
+  "INLAY": "retention flat at ~1.0 through N=400 (each fact -> separate memory slot, zero weight change, no inter-edit interference). Locality degrades gently (1.0->0.55 at N=400) because a larger populated memory has more chances for a control prompt to exceed the fixed gate 0.45. 400 edits written in 1.8 s, 0 gradient steps.",
   "ROME": "sequential single-layer edits catastrophically interfere: locality collapses 0.85->0.00 by N=50 (model destroyed). Retention reads 0.0 from N=1 due to a fresh-pass scoring artifact after keep_original_weight=False (documented earlier in project); the ROBUST, unambiguous signal is the locality collapse. 100 edits took 758 s.",
   "in_context": "RAG re-supplies each fact per query, so it does not accumulate damage (retention ~0.94, locality 1.0) \u2014 but it is not persistent editing; every query pays the context cost and the model's weights/memory are unchanged.",
   "base": "retention ~0 (model doesn't know the facts), locality 1.0 (nothing changed).",

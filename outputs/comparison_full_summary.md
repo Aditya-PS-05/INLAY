@@ -1,4 +1,4 @@
-# CAKE vs ROME, MEMIT, fine-tuning, and in-context — measured
+# INLAY vs ROME, MEMIT, fine-tuning, and in-context — measured
 
 All six methods on **the same model (GPT-2-XL, 1.5B)**, same 5 fabricated facts (efficacy)
 and 12 general-knowledge control prompts (locality), on an NVIDIA L40S.
@@ -11,7 +11,7 @@ ROME/MEMIT run via EasyEdit (the reference implementation).
 | Fine-tune (60 steps) | 5/5 | **0.25** | 34.7 s | 60 | all 1.5B params |
 | **ROME** | 1/5 | **0.00** | 15 s | 20 | rank-1, 1 MLP layer |
 | **MEMIT** | 2/5 | 0.92 | 10,729 s* | 100 | 5 MLP layers (13–17) |
-| **CAKE (this)** | **5/5** | **1.00** | **0.15 s** | **0** | external table (weights frozen) |
+| **INLAY (this)** | **5/5** | **1.00** | **0.15 s** | **0** | external table (weights frozen) |
 
 \*MEMIT's write time is dominated by a **one-time** Wikipedia covariance precompute (~3 h for
 5 layers, cached to disk); the edit itself is seconds. All other write times are per-edit.
@@ -21,8 +21,8 @@ answer is unchanged from base (1.0 = no collateral damage).
 
 ## What the numbers say
 
-- **CAKE and in-context (RAG) are the only two methods in the ideal top-right corner** — full
-  efficacy AND full locality. CAKE gets there with a 0.15 s gradient-free write and frozen weights;
+- **INLAY and in-context (RAG) are the only two methods in the ideal top-right corner** — full
+  efficacy AND full locality. INLAY gets there with a 0.15 s gradient-free write and frozen weights;
   RAG gets there by re-feeding the document on every query (cost grows with the corpus).
 
 - **ROME collapsed (1/5, locality 0).** This is the important, honest finding: **all 5 facts
@@ -44,18 +44,18 @@ answer is unchanged from base (1.0 = no collateral damage).
 ## The fair reading
 
 This benchmark is deliberately the **hardest case for subject-keyed weight editors** (many
-attributes of one entity) and the **natural case for addressable memory** (one slot per fact). CAKE
+attributes of one entity) and the **natural case for addressable memory** (one slot per fact). INLAY
 wins here because it keys on the full context, not the subject token, so 5 facts about one entity
 land in 5 disjoint slots with no collision.
 
-The honest flip side, unchanged from before: CAKE's advantage narrows when facts span *many*
-subjects (ROME/MEMIT's home turf, where published MEMIT scales to thousands of edits), and CAKE
+The honest flip side, unchanged from before: INLAY's advantage narrows when facts span *many*
+subjects (ROME/MEMIT's home turf, where published MEMIT scales to thousands of edits), and INLAY
 still addresses paraphrased queries imperfectly (2/5). A complete evaluation would add a
 multi-subject fact set — that's the benchmark where ROME/MEMIT are expected to close the gap.
 
 ## Reproducibility
 
-`compare_methods.py <model> <cake_layer> <cake_alpha> <n_sub>` runs base/RAG/fine-tune/CAKE and
-prints locality 1.00 for CAKE using the min_score=0.9 firing gate (the code reproduces the reported
+`compare_methods.py <model> <inlay_layer> <inlay_alpha> <n_sub>` runs base/RAG/fine-tune/INLAY and
+prints locality 1.00 for INLAY using the min_score=0.9 firing gate (the code reproduces the reported
 number). `run_rome_memit.py ROME|MEMIT` runs the EasyEdit edits. Raw numbers in
 `comparison_full.json`.

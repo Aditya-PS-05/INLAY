@@ -1,5 +1,5 @@
 {
- "note": "CAKE playback alpha operating points, derived from W_U row-norm (alpha*norm ~= 26-28 const)",
+ "note": "INLAY playback alpha operating points, derived from W_U row-norm (alpha*norm ~= 26-28 const)",
  "GPT-J-6B": {
   "wu_rownorm": 1.306,
   "alpha": 20

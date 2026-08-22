@@ -49,6 +49,6 @@ for i,r in enumerate(recs,1):
             loc=sum(float(pred(cp,mg)==bp) for cp,bp in zip(controls,base_ctrl))/len(controls)
             curves[key].append({"n":i,"retention":round(ret,4),"locality":round(loc,4),"score_hm":round(hm(ret,loc),4)})
 
-result={"method":"CAKE margin-curve","model":MODEL,"gate":GATE,"margin":MARGIN,
+result={"method":"INLAY margin-curve","model":MODEL,"gate":GATE,"margin":MARGIN,
         "checkpoints":CHECK,"curves":curves}
 print("<<<JSON>>>"); print(json.dumps(result)); print("<<<END>>>")

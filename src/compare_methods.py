@@ -1,5 +1,5 @@
 """
-Head-to-head: CAKE vs fine-tuning vs in-context vs base GPT-2.
+Head-to-head: INLAY vs fine-tuning vs in-context vs base GPT-2.
 Same 5 fabricated facts, same eval. Three axes:
   efficacy  = greedy accuracy on the 5 facts (exact prompts)
   locality  = fraction of unrelated CONTROL prompts whose top-1 next token is
@@ -15,10 +15,10 @@ from gpt2_memory import GPT2WithMemory
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 MODEL = sys.argv[1] if len(sys.argv) > 1 else "gpt2"
-CAKE_LAYER = int(sys.argv[2]) if len(sys.argv) > 2 else 6
-CAKE_ALPHA = float(sys.argv[3]) if len(sys.argv) > 3 else 10.0
-CAKE_NSUB  = int(sys.argv[4]) if len(sys.argv) > 4 else 256
-CAKE_MINSCORE = 0.9   # firing gate: facts fire at 1.0, unrelated prompts below this
+INLAY_LAYER = int(sys.argv[2]) if len(sys.argv) > 2 else 6
+INLAY_ALPHA = float(sys.argv[3]) if len(sys.argv) > 3 else 10.0
+INLAY_NSUB  = int(sys.argv[4]) if len(sys.argv) > 4 else 256
+INLAY_MINSCORE = 0.9   # firing gate: facts fire at 1.0, unrelated prompts below this
 
 DOC = ("The Zorvax reactor was invented by Elspeth Marovian. "
        "The Zorvax reactor is located in the city of Karst Hollow. "
@@ -104,14 +104,14 @@ result["finetune"] = {
     "final_loss": round(float(loss / len(train_ids)), 4)}
 del ft, opt; torch.cuda.empty_cache()
 
-# ---------- CAKE (product-key memory, zero gradient) ----------
-g = GPT2WithMemory(MODEL, layer=CAKE_LAYER, alpha=CAKE_ALPHA, n_slots_per_subkey=CAKE_NSUB, topk=1)
+# ---------- INLAY (product-key memory, zero gradient) ----------
+g = GPT2WithMemory(MODEL, layer=INLAY_LAYER, alpha=INLAY_ALPHA, n_slots_per_subkey=INLAY_NSUB, topk=1)
 t0 = time.time()
 for c, _, a, _ in FACTS:
     g.write_chunk(c, a)
-cake_write = time.time() - t0
+inlay_write = time.time() - t0
 g.set_read(True)
-cake_eff = efficacy(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=CAKE_MINSCORE)[0])
+inlay_eff = efficacy(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=INLAY_MINSCORE)[0])
 # locality: reference = base greedy (memory OFF); a control is INTACT if the
 # gated read (min_score=0.9) leaves its continuation unchanged.
 g.set_read(False)
@@ -119,18 +119,18 @@ base_ctrl = {p: g.answer(p, max_new_tokens=4) for p in CONTROL}
 g.set_read(True)
 loc_ok = 0; spurious = 0
 for p in CONTROL:
-    txt, sid = g.answer_playback(p, max_new_tokens=4, min_score=CAKE_MINSCORE)
+    txt, sid = g.answer_playback(p, max_new_tokens=4, min_score=INLAY_MINSCORE)
     if txt == base_ctrl[p]:
         loc_ok += 1
     if sid is not None:
         spurious += 1
-result["cake"] = {
-    "efficacy": cake_eff,
+result["inlay"] = {
+    "efficacy": inlay_eff,
     "locality": round(loc_ok / len(CONTROL), 3),
     "spurious_fires": spurious,
-    "write_s": round(cake_write, 4), "grad_steps": 0,
+    "write_s": round(inlay_write, 4), "grad_steps": 0,
     "params_changed": 0,
-    "min_score": CAKE_MINSCORE,
+    "min_score": INLAY_MINSCORE,
     "note": "weights frozen; firing gate min_score=0.9 separates facts (score 1.0) from unrelated prompts (<=0.87)"}
 g.close()
 

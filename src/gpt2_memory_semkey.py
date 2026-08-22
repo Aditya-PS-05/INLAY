@@ -1,5 +1,5 @@
 """
-GPT2WithSemanticMemory — CAKE v2, the paraphrase+locality fix.
+GPT2WithSemanticMemory — INLAY v2, the paraphrase+locality fix.
 
 The v1 weakness (measured on CounterFact): the addressing KEY was the raw
 last-token hidden state h_L of the written prompt. A geometry probe on 40
@@ -16,7 +16,7 @@ threshold can separate a real hit from a neighbor. That single fact explains
 both low PS (paraphrases miss the slot) and imperfect NS (neighbors falsely fire
 the gate).
 
-The fix keeps everything about CAKE except WHAT it keys on: address the
+The fix keeps everything about INLAY except WHAT it keys on: address the
 product-key memory with a normalized **sentence-embedding** of the prompt
 (all-MiniLM-L6-v2), which maps paraphrases together and different subjects apart.
 The GPT-2 model stays frozen; the VALUE (answer-token unembedding direction) and

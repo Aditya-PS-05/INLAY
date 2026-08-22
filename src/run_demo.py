@@ -1,5 +1,5 @@
 """
-End-to-end CAKE demo driver. Runs on whatever device torch sees (CUDA on the
+End-to-end INLAY demo driver. Runs on whatever device torch sees (CUDA on the
 L40S host). Emits ONE json blob to stdout between <<<JSON>>> markers so the
 orchestrator can pull back small numeric results without bloating context.
 

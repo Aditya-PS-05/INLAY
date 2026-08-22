@@ -1,7 +1,7 @@
 """
 CounterFact single-edit for ROME on GPT-J-6B via EasyEdit native metrics.
 Same protocol/metric as eval_cf_edit.py (ES=rewrite_acc, PS=rephrase_acc,
-NS=locality neighborhood_acc) so it compares directly to CAKE on GPT-J.
+NS=locality neighborhood_acc) so it compares directly to INLAY on GPT-J.
 Overrides hp.device to 0 (single L40S). Run from EasyEdit/.
 Usage: python eval_cf_edit_gptj.py ROME <N>. Emits JSON between markers.
 """

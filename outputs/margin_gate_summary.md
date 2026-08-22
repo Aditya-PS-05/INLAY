@@ -1,6 +1,6 @@
-# Adaptive margin gate — fixing CAKE's locality-vs-scale weakness
+# Adaptive margin gate — fixing INLAY's locality-vs-scale weakness
 
-The sequential-editing stress test exposed CAKE's one remaining weakness: with a fixed absolute
+The sequential-editing stress test exposed INLAY's one remaining weakness: with a fixed absolute
 firing gate (cosine ≥ 0.45), **locality degraded as the memory filled** — 1.00 at N=1 down to 0.57 at
 N=400. This fix eliminates it.
 
@@ -52,13 +52,13 @@ three orders of magnitude of memory occupancy, with retention untouched.
 
 ## What this closes
 
-This was the last open weakness in the CAKE evaluation. The three problems found over the project are
+This was the last open weakness in the INLAY evaluation. The three problems found over the project are
 now all resolved:
-- **paraphrase generalization** → semantic (MiniLM) key (CAKE v2)
-- **multi-token answers** → position-wise logit playback (CAKE v3)
+- **paraphrase generalization** → semantic (MiniLM) key (INLAY v2)
+- **multi-token answers** → position-wise logit playback (INLAY v3)
 - **locality degrading with memory size** → adaptive margin gate (this fix)
 
-CAKE now holds near-perfect retention *and* locality across hundreds of sequential edits, gradient-free
+INLAY now holds near-perfect retention *and* locality across hundreds of sequential edits, gradient-free
 and non-destructive, at ~1600× lower per-edit write cost than ROME.
 
 ## Caveats

@@ -1,9 +1,9 @@
 """
 Sequential / batch editing stress test on CounterFact (GPT-2-XL).
 
-The regime where CAKE's structure should matter: write N facts one after another,
+The regime where INLAY's structure should matter: write N facts one after another,
 then measure how many of ALL N are still correct (retention) plus locality. Weight
-editors (ROME single-layer sequential) accumulate interference as N grows; CAKE
+editors (ROME single-layer sequential) accumulate interference as N grows; INLAY
 writes each fact to a SEPARATE memory slot with zero weight change, so retention
 should stay flat.
 
@@ -13,7 +13,7 @@ Metrics at each checkpoint N (evaluated over all edits made so far):
                     unchanged vs the pre-edit base model
   score           = harmonic mean(retention, locality)
 
-CAKE only here (base/RAG/finetune added by comparison; ROME/MEMIT via
+INLAY only here (base/RAG/finetune added by comparison; ROME/MEMIT via
 bench_sequential_edit.py). Emits one JSON blob between <<<JSON>>> markers.
 Usage: python bench_sequential.py <method> <model_path> <Nmax>
 """
@@ -22,12 +22,12 @@ sys.path.insert(0, "src")
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
-METHOD = sys.argv[1] if len(sys.argv) > 1 else "cake"
+METHOD = sys.argv[1] if len(sys.argv) > 1 else "inlay"
 MODEL = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 NMAX = int(sys.argv[3]) if len(sys.argv) > 3 else 200
 CHECKPOINTS = [1, 5, 10, 25, 50, 100, 200, 400]
 CHECKPOINTS = [n for n in CHECKPOINTS if n <= NMAX]
-CAKE_LAYER, CAKE_ALPHA, CAKE_GATE = 24, 10.0, 0.45
+INLAY_LAYER, INLAY_ALPHA, INLAY_GATE = 24, 10.0, 0.45
 FT_STEPS = 20
 
 random.seed(0)
@@ -48,25 +48,25 @@ def hm(*xs):
 result={"method":METHOD,"model":MODEL,"benchmark":"CounterFact sequential","nmax":NMAX,
         "checkpoints":CHECKPOINTS,"curve":[], "gpu":torch.cuda.get_device_name(0) if DEV=="cuda" else None}
 
-# ---------------- CAKE (multi-token value, semantic key) ----------------
-if METHOD=="cake":
+# ---------------- INLAY (multi-token value, semantic key) ----------------
+if METHOD=="inlay":
     from gpt2_memory_semkey import GPT2WithSemanticMemory
-    g=GPT2WithSemanticMemory(MODEL,layer=CAKE_LAYER,alpha=CAKE_ALPHA,n_slots_per_subkey=4096,key_mode="prompt")
-    def cake_acc(prompt,target):
+    g=GPT2WithSemanticMemory(MODEL,layer=INLAY_LAYER,alpha=INLAY_ALPHA,n_slots_per_subkey=4096,key_mode="prompt")
+    def inlay_acc(prompt,target):
         pids=tok(prompt,return_tensors="pt").input_ids[0]; tids=tgt_ids(target)
         full=torch.cat([pids,tids]).unsqueeze(0).to(DEV)
-        logits,_,_=g.gated_logits(full,len(pids),CAKE_GATE)
+        logits,_,_=g.gated_logits(full,len(pids),INLAY_GATE)
         s=len(pids)-1; return float((logits[s:s+len(tids)].argmax(-1).cpu()==tids).float().mean())
-    def cake_pred(prompt):
+    def inlay_pred(prompt):
         pids=tok(prompt,return_tensors="pt").input_ids.to(DEV)
-        logits,_,_=g.gated_logits(pids,pids.shape[1],CAKE_GATE); return int(logits[-1].argmax())
-    base_ctrl=[cake_pred(cp) for cp in controls]  # memory empty
+        logits,_,_=g.gated_logits(pids,pids.shape[1],INLAY_GATE); return int(logits[-1].argmax())
+    base_ctrl=[inlay_pred(cp) for cp in controls]  # memory empty
     tw=0.0
     for i,r in enumerate(recs,1):
         p,tn,subj=prompt_of(r); t0=time.time(); g.write_chunk(p,tn,subject=subj); tw+=time.time()-t0
         if i in CHECKPOINTS:
-            ret=sum(cake_acc(*prompt_of(rr)[:2]) for rr in recs[:i])/i
-            loc=sum(float(cake_pred(cp)==bp) for cp,bp in zip(controls,base_ctrl))/len(controls)
+            ret=sum(inlay_acc(*prompt_of(rr)[:2]) for rr in recs[:i])/i
+            loc=sum(float(inlay_pred(cp)==bp) for cp,bp in zip(controls,base_ctrl))/len(controls)
             result["curve"].append({"n":i,"retention":round(ret,4),"locality":round(loc,4),
                                     "score_hm":round(hm(ret,loc),4),"cum_write_s":round(tw,3)})
 

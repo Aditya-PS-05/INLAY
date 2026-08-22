@@ -1,7 +1,7 @@
 
 """Matched RippleEdits harness — ALL methods score the IDENTICAL example set.
 Fixes the earlier fairness caveat: the usable-example list (with Wikidata-verified subjects)
-is precomputed in ripple_matched_manifest.json; every method (base/in_context/cake/ROME/WISE/
+is precomputed in ripple_matched_manifest.json; every method (base/in_context/inlay/ROME/WISE/
 AlphaEdit) iterates exactly that list, so the sample is matched by construction and ROME's
 subject comes from a verified Wikidata label, not a heuristic.
 Usage: python eval_rippleedits_matched.py <method> <model_path> <alpha> [gate]
@@ -19,7 +19,7 @@ MARGIN=float(sys.argv[6]) if len(sys.argv)>6 else 0.0
 MAXNEW=24
 CRIT=["Logical_Generalization","Compositionality_I","Compositionality_II","Subject_Aliasing","Relation_Specificity","Forgetfulness"]
 PROP={"Logical_Generalization","Compositionality_I","Compositionality_II","Subject_Aliasing"}
-assert METHOD in ("base","in_context","cake","ROME","WISE","AlphaEdit")
+assert METHOD in ("base","in_context","inlay","ROME","WISE","AlphaEdit")
 
 random.seed(0)
 data=json.load(open("../RippleEdits/popular.json")); random.shuffle(data)
@@ -29,7 +29,7 @@ EXS=[(data[m["shuf_idx"]], m["subject"]) for m in manifest]
 
 # ---- model / editor setup ----
 model=tok=g=editor=orig_state=None
-if METHOD in ("base","in_context","cake"):
+if METHOD in ("base","in_context","inlay"):
     from gpt2_memory_semkey import GPT2WithSemanticMemory
     g=GPT2WithSemanticMemory(MODEL,layer=0,alpha=ALPHA,n_slots_per_subkey=4096,key_mode="prompt",model_dtype=torch.float16)
     model,tok=g.model,g.tok
@@ -78,8 +78,8 @@ CTX={"prefix":""}
 def gen_query(prompt):
     if METHOD=="in_context":
         return gen_plain(CTX["prefix"]+prompt)
-    if METHOD=="cake":
-        # correct cake read path: dedicated playback (fires slot if gate met, else plain gen)
+    if METHOD=="inlay":
+        # correct inlay read path: dedicated playback (fires slot if gate met, else plain gen)
         # margin/rel_gate now actually reach the real generation path post gate-bypass fix
         # (pre-fix, answer_playback ignored both regardless of what was passed here)
         txt,_=g.answer_playback(prompt,max_new_tokens=MAXNEW,gate=GATE,margin=MARGIN,rel_gate=REL_GATE)
@@ -101,7 +101,7 @@ per={c:[] for c in CRIT}; nused=0
 for ex,subj in EXS:
     edit=ex["edit"]; prompt,tgt=rp_from_edit(edit)
     # install the edit
-    if METHOD=="cake":
+    if METHOD=="inlay":
         g.mem.clear_all(); g.write_chunk(prompt,tgt,subject=subj)
     elif METHOD=="in_context":
         CTX["prefix"]=f"{edit['prompt']} "

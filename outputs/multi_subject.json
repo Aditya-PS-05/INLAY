@@ -25,7 +25,7 @@
   "write_s": 123.455,
   "grad_steps": 60
  },
- "cake": {
+ "inlay": {
   "efficacy": 1.0,
   "generalization": 0.25,
   "locality": 1.0,

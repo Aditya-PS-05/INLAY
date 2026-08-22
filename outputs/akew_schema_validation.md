@@ -2,7 +2,7 @@
 
 Repo: https://github.com/bobxwu/AKEW, pinned at commit
 `6bcd8e9a28cf16a530739c14425e82e9bede2cec` (2025-02-12), cloned to
-`../AKEW/repo` (sibling of `cake_prototype/`).
+`../AKEW/repo` (sibling of `inlay_prototype/`).
 
 ## Record counts (validated against the actual files, not assumed from the paper)
 
@@ -50,7 +50,7 @@ extracted cards carry `raw_evidence_text` and never `canonical_fact_text`).
 All 9 combinations pass. Path resolution is anchored to the module's own file
 location (`os.path.dirname(os.path.abspath(__file__))`), not the caller's cwd,
 after an initial version broke depending on whether it was invoked from
-`cake_prototype/` or `cake_prototype/src/`.
+`inlay_prototype/` or `inlay_prototype/src/`.
 
 ## Stage 1 retrieval pilot (dense, no ANN, full data, no sampling)
 

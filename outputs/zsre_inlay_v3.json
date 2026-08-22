@@ -1,5 +1,5 @@
 {
- "method": "cake",
+ "method": "inlay",
  "model": "EasyEdit/hugging_cache/gpt2-xl",
  "n": 100,
  "benchmark": "zsRE",

@@ -159,15 +159,15 @@ the same class of finding as the verifier's threshold-miscalibration result,
 now showing up in the router's DIRECT/REASON boundary too. Not fixed in this
 pass; a concrete, specific direction for future router calibration work.
 
-## Baseline comparison: CAKE vs plain RAG vs IKE
+## Baseline comparison: INLAY vs plain RAG vs IKE
 
 See `akew_baseline_comparison_results.md` for the full report. Headline,
-CounterFact unstructured (n=147): CAKE and plain RAG tie at 87.07% (they are
+CounterFact unstructured (n=147): INLAY and plain RAG tie at 87.07% (they are
 mechanically identical here, since the router routes 100% to REASON on this
 dataset/mode); **IKE (RAG plus few-shot override demonstrations) wins at
-90.48%** -- a real, honestly-reported result that doesn't flatter CAKE, and
-a concrete, cheap improvement worth folding into CAKE's own REASON path
-(demonstrations plus CAKE's retrieval/verification/routing, which plain RAG
+90.48%** -- a real, honestly-reported result that doesn't flatter INLAY, and
+a concrete, cheap improvement worth folding into INLAY's own REASON path
+(demonstrations plus INLAY's retrieval/verification/routing, which plain RAG
 and IKE lack entirely and would need on datasets where REJECT matters, like
 WikiUpdate).
 

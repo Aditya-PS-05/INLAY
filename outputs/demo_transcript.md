@@ -1,4 +1,4 @@
-# CAKE demo transcript
+# INLAY demo transcript
 Model **gpt2** · layer L=6 · α=10.0 · top-k=1 · table capacity **65,536 slots** · device **cuda (NVIDIA L40S)**
 5 chunks written with **zero gradient steps** in **0.0892s**. Exact-prompt greedy accuracy **5/5**, paraphrase **2/5**.
 

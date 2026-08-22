@@ -1,5 +1,5 @@
 {
- "note": "Canonical knowledge-editing references for CAKE, verified via OpenAlex. arXiv API was proxy-blocked; metadata from OpenAlex title search.",
+ "note": "Canonical knowledge-editing references for INLAY, verified via OpenAlex. arXiv API was proxy-blocked; metadata from OpenAlex title search.",
  "references": {
   "ROME": {
    "title": "Locating and Editing Factual Associations in GPT",

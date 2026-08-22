@@ -2,7 +2,7 @@
 GPT2WithMemory — hangs a ProductKeyMemory off ONE transformer layer of a frozen
 GPT-2 and wires a zero-gradient read/write loop into the residual stream.
 
-Design (CAKE = Chunk-Addressable Knowledge Editing):
+Design (INLAY: chunk-addressable external memory, no gradient steps):
 
   READ  (inference):
      A forward hook on block L reads the last-token hidden state h_L, uses it as

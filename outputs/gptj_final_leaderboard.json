@@ -3,7 +3,7 @@
  "model": "gpt-j-6B",
  "metric": "EasyEdit native token-accuracy ES/PS/NS, harmonic-mean score",
  "sample_sizes": {
-  "gradient_free (Base/RAG/CAKE)": 1000,
+  "gradient_free (Base/RAG/INLAY)": 1000,
   "weight_adapter_editors (ROME/WISE/GRACE/MEMIT/AlphaEdit)": 100
  },
  "results": {
@@ -59,7 +59,7 @@
    "score_hm": 0.7507,
    "write_s": 8.6186
   },
-  "CAKE_v3": {
+  "INLAY_v3": {
    "n": 1000,
    "ES": 1.0,
    "PS": 0.868,
@@ -68,7 +68,7 @@
    "grad_steps": 0
   }
  },
- "cake_stability": {
+ "inlay_stability": {
   "N100": {
    "ES": 1.0,
    "PS": 0.85,
@@ -83,7 +83,7 @@
   }
  },
  "ranking": [
-  "CAKE 0.896",
+  "INLAY 0.896",
   "ROME 0.751",
   "WISE 0.653",
   "RAG 0.546",

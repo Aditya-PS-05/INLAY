@@ -1,6 +1,6 @@
 """
-CounterFact single-edit eval for CAKE v2 (semantic key), same token-accuracy
-metric as eval_cf.py so numbers compare directly with base/RAG/ROME/MEMIT/CAKEv1.
+CounterFact single-edit eval for INLAY v2 (semantic key), same token-accuracy
+metric as eval_cf.py so numbers compare directly with base/RAG/ROME/MEMIT/INLAYv1.
 
 Sweeps the firing gate and reports the full ES/PS/NS curve so the efficacy vs
 locality trade-off is explicit; also prints the best-by-score operating point.
@@ -16,13 +16,13 @@ MODEL = sys.argv[1] if len(sys.argv) > 1 else "gpt2"
 N = int(sys.argv[2]) if len(sys.argv) > 2 else 100
 KEY_MODE = sys.argv[3] if len(sys.argv) > 3 else "prompt"
 GATES = [0.2, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
-CAKE_LAYER, CAKE_ALPHA = 24, 10.0
+INLAY_LAYER, INLAY_ALPHA = 24, 10.0
 
 random.seed(0)
 CF = json.load(open("data/counterfact.json"))
 recs = random.sample(CF, N)
 
-g = GPT2WithSemanticMemory(MODEL, layer=CAKE_LAYER, alpha=CAKE_ALPHA,
+g = GPT2WithSemanticMemory(MODEL, layer=INLAY_LAYER, alpha=INLAY_ALPHA,
                            n_slots_per_subkey=4096, key_mode=KEY_MODE)
 tok = g.tok
 
@@ -70,7 +70,7 @@ for gate in GATES:
     sweep[gate] = {"ES": round(es,4), "PS": round(ps,4), "NS": round(ns,4), "score_hm": round(hm(es,ps,ns),4)}
 
 best = max(sweep.items(), key=lambda kv: kv[1]["score_hm"])
-result = {"method": f"CAKE-semkey({KEY_MODE})", "model": MODEL, "n": N,
-          "metric": "EasyEdit native token-accuracy (ES/PS/NS)", "layer": CAKE_LAYER, "alpha": CAKE_ALPHA,
+result = {"method": f"INLAY-semkey({KEY_MODE})", "model": MODEL, "n": N,
+          "metric": "EasyEdit native token-accuracy (ES/PS/NS)", "layer": INLAY_LAYER, "alpha": INLAY_ALPHA,
           "sweep": sweep, "best_gate": best[0], **best[1]}
 print("<<<JSON>>>"); print(json.dumps(result)); print("<<<END>>>")

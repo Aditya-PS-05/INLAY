@@ -12,7 +12,7 @@ ALG = sys.argv[1] if len(sys.argv) > 1 else "ROME"
 MODEL_PATH = "./hugging_cache/gpt2-xl"
 DEV = "cuda"
 
-D = json.load(open("../facts24.json"))   # run from EasyEdit/ ; facts at ~/cake/facts24.json
+D = json.load(open("../facts24.json"))   # run from EasyEdit/ ; facts at ~/inlay/facts24.json
 FACTS, CONTROL = D["facts"], D["control"]
 PROMPTS  = [f[1] for f in FACTS]
 SUBJECTS = [f[0] for f in FACTS]

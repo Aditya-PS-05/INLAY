@@ -25,7 +25,7 @@
   "params_changed": 1557611200,
   "final_loss": 0.1567
  },
- "cake": {
+ "inlay": {
   "efficacy": 1.0,
   "locality": 1.0,
   "spurious_fires": 0,

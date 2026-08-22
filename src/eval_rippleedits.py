@@ -12,7 +12,7 @@ mean over the criteria that have data.
 Methods:
   base       : unedited model
   in_context : prepend the edit statement (RAG; the paper's strongest baseline)
-  cake       : write the edit into product-key memory; read-time playback if gate fires
+  inlay       : write the edit into product-key memory; read-time playback if gate fires
 
 Usage: python eval_rippleedits.py <method> <model_path> [N] [alpha] [gate]
 Emits one JSON blob between <<<JSON>>> markers.
@@ -20,12 +20,12 @@ Emits one JSON blob between <<<JSON>>> markers.
 import sys, json, random, torch
 sys.path.insert(0, "src")
 
-METHOD = sys.argv[1] if len(sys.argv) > 1 else "cake"
+METHOD = sys.argv[1] if len(sys.argv) > 1 else "inlay"
 MODEL  = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 N      = int(sys.argv[3]) if len(sys.argv) > 3 else 100
 ALPHA  = float(sys.argv[4]) if len(sys.argv) > 4 else 20.0
 GATE   = float(sys.argv[5]) if len(sys.argv) > 5 else 0.45
-assert METHOD in ("cake", "base", "in_context")
+assert METHOD in ("inlay", "base", "in_context")
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 MAXNEW = 24
 CRITERIA = ["Logical_Generalization","Compositionality_I","Compositionality_II",
@@ -37,7 +37,7 @@ data = json.load(open("RippleEdits/popular.json"))
 random.shuffle(data)
 
 # ---- model ----
-if METHOD == "cake":
+if METHOD == "inlay":
     from gpt2_memory_semkey import GPT2WithSemanticMemory
     g = GPT2WithSemanticMemory(MODEL, layer=0, alpha=ALPHA, n_slots_per_subkey=4096,
                                key_mode="prompt", model_dtype=torch.float16)
@@ -57,7 +57,7 @@ def gen_base(prompt, prefix=""):
     return tok.decode(out[0, ids.input_ids.shape[1]:], skip_special_tokens=True)
 
 @torch.no_grad()
-def gen_cake(prompt):
+def gen_inlay(prompt):
     # semantic-key playback if a slot fires >= GATE, else plain generation
     txt, sid = g.answer_playback(prompt, max_new_tokens=MAXNEW, gate=GATE)
     return txt
@@ -72,7 +72,7 @@ def answer_hit(gen, answers):
     return False
 
 def query_correct(q, edit_prefix):
-    if METHOD == "cake":       gen = gen_cake(q["prompt"])
+    if METHOD == "inlay":       gen = gen_inlay(q["prompt"])
     elif METHOD == "in_context": gen = gen_base(q["prompt"], prefix=edit_prefix)
     else:                       gen = gen_base(q["prompt"])
     return answer_hit(gen, q.get("answers", []))
@@ -94,7 +94,7 @@ for ex in data:
     subj = None
     # subject string: take from original_fact prompt if present; else skip subject
     # (RippleEdits gives ids, not surface subject; use the edit prompt's fact form)
-    if METHOD == "cake":
+    if METHOD == "inlay":
         # write the edited fact: prompt-context = the edit statement without the target;
         # target = the new object. Derive by splitting on ' is ' (RippleEdits template).
         p = edit_stmt

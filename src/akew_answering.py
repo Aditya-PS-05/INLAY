@@ -89,7 +89,7 @@ def answer_contextual(model, tok, query, card, device, max_new_tokens=20, demons
     it, not what you previously believed'), prepended before the actual
     evidence+question. Folds IKE's demonstrated finding (90.48% vs plain
     RAG's 87.07% on CounterFact unstructured, akew_baseline_comparison_
-    results.md) into CAKE's own REASON path, on top of the retrieval/
+    results.md) into INLAY's own REASON path, on top of the retrieval/
     verification/routing machinery plain IKE and RAG lack entirely. None
     (the default) reproduces the exact prior behavior for every existing
     caller -- this is additive, not a silent behavior change."""

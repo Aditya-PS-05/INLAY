@@ -8,29 +8,29 @@ For each single edit ("<subject> <relation> -> target_new"):
           -> fraction of "other" probes whose predicted first token == target_new's first token.
           Low = good specificity; HIGH = the method over-generalises the edit.
 A retrieval method that keys on subject/prompt similarity is expected to PROP well but OVERFIRE
-(play back the stored target even when a different attribute is asked). This is where CAKE should
+(play back the stored target even when a different attribute is asked). This is where INLAY should
 be weakest vs a weight-editor that changes the actual relation representation.
 
-SUPPORTED METHODS HERE: cake / base / in_context ONLY. install() applies a real memory write for
-cake and a context-prefix for in_context; for any other name it is a NO-OP and would score the raw
+SUPPORTED METHODS HERE: inlay / base / in_context ONLY. install() applies a real memory write for
+inlay and a context-prefix for in_context; for any other name it is a NO-OP and would score the raw
 base model. ROME/WISE/GRACE are weight/adapter editors and must be run through EasyEdit's own edit()
 (see comp_rome.py / eval_portability_edit.py) — do NOT pass them to this script.
-Usage: python eval_comp_portability.py cake|base|in_context <model_path> [alpha]. Probes from json.
+Usage: python eval_comp_portability.py inlay|base|in_context <model_path> [alpha]. Probes from json.
 Emits one JSON blob between <<<JSON>>> markers.
 """
 import sys, json, torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
-METHOD = sys.argv[1] if len(sys.argv) > 1 else "cake"
+METHOD = sys.argv[1] if len(sys.argv) > 1 else "inlay"
 MODEL = sys.argv[2] if len(sys.argv) > 2 else "gpt2"
 ALPHA = float(sys.argv[3]) if len(sys.argv) > 3 else 20.0
 GATE = 0.45
-assert METHOD in ("cake", "base", "in_context"), \
-    f"{METHOD} not supported here (only cake/base/in_context); run ROME/WISE via EasyEdit edit()"
+assert METHOD in ("inlay", "base", "in_context"), \
+    f"{METHOD} not supported here (only inlay/base/in_context); run ROME/WISE via EasyEdit edit()"
 probes = json.load(open("comp_probes.json"))
 
-if METHOD == "cake":
+if METHOD == "inlay":
     sys.path.insert(0, "src")
     from gpt2_memory_semkey import GPT2WithSemanticMemory
     g = GPT2WithSemanticMemory(MODEL, layer=0, alpha=ALPHA, n_slots_per_subkey=4096,
@@ -78,7 +78,7 @@ for pr in probes:
     # over-fire: on the DIFFERENT-relation query, does the method emit target_new's first token?
     OVER += int(first(pr["other"]) == tn_first); nO += 1
 
-result = {"method": METHOD, "model": MODEL, "n": len(probes), "alpha": ALPHA if METHOD=="cake" else None,
+result = {"method": METHOD, "model": MODEL, "n": len(probes), "alpha": ALPHA if METHOD=="inlay" else None,
           "propagation": round(PROP/len(probes),4),
           "overfire_rate": round(OVER/nO,4),
           "note": "propagation high=good; overfire_rate low=good (specificity)"}

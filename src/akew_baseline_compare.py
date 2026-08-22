@@ -1,9 +1,9 @@
 """
 Compares three methods on the same sample, real (non-oracle) retrieval
-throughout: CAKE's routed pipeline (retrieval + v2 verifier + router),
+throughout: INLAY's routed pipeline (retrieval + v2 verifier + router),
 plain RAG (retrieve top-1, inject as context, generate -- no demonstrations,
 no gating), and IKE (RAG + demonstration examples showing the override
-pattern). Brief section 6, methods 2-8 (CAKE variants, already covered by
+pattern). Brief section 6, methods 2-8 (INLAY variants, already covered by
 akew_fullpipeline_eval.py's routed condition) vs methods 9 (RAG) and 10
 (IKE) -- weight-editing methods (1, 3-8 partially, 11) remain out of scope,
 see akew_fullpipeline_results.md's scope note.
@@ -46,7 +46,7 @@ if tok.pad_token is None:
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16).to(device).eval()
 
 
-cake_hits, rag_hits, ike_hits = [], [], []
+inlay_hits, rag_hits, ike_hits = [], [], []
 examples_log = []
 
 for c in test:
@@ -58,15 +58,15 @@ for c in test:
     decision = router.route(q)
     if decision.decision == "REJECT":
         from akew_answering import answer_no_context
-        cake_ans = answer_no_context(model, tok, q, device)
+        inlay_ans = answer_no_context(model, tok, q, device)
     else:
         routed_card = next((cc for cc in cards if cc.edit_id == decision.card_id), None)
         if decision.decision == "DIRECT":
             from akew_answering import answer_hard_playback
-            cake_ans = answer_hard_playback(routed_card, golds.get(decision.card_id))
+            inlay_ans = answer_hard_playback(routed_card, golds.get(decision.card_id))
         else:
-            cake_ans = answer_contextual(model, tok, q, routed_card, device) if routed_card else ""
-    cake_hits.append(is_hit(cake_ans, g))
+            inlay_ans = answer_contextual(model, tok, q, routed_card, device) if routed_card else ""
+    inlay_hits.append(is_hit(inlay_ans, g))
 
     top1 = index.query(q, topk=1)
     if top1:
@@ -81,14 +81,14 @@ for c in test:
 
     if len(examples_log) < 6:
         examples_log.append({"query": q, "gold": g.target_new,
-                             "cake_routed": cake_ans, "cake_hit": cake_hits[-1],
+                             "inlay_routed": inlay_ans, "inlay_hit": inlay_hits[-1],
                              "rag": rag_ans, "rag_hit": rag_hits[-1],
                              "ike": ike_ans, "ike_hit": ike_hits[-1]})
 
-n = len(cake_hits)
+n = len(inlay_hits)
 out = {"dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME,
        "accuracy": {
-           "cake_routed_pipeline": round(sum(cake_hits) / n, 4) if n else None,
+           "inlay_routed_pipeline": round(sum(inlay_hits) / n, 4) if n else None,
            "plain_rag": round(sum(rag_hits) / n, 4) if n else None,
            "ike_with_demonstrations": round(sum(ike_hits) / n, 4) if n else None,
        },

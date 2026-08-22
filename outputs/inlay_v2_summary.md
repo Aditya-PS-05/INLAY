@@ -1,21 +1,21 @@
-# Fixing CAKE's paraphrase-generalization and locality weaknesses
+# Fixing INLAY's paraphrase-generalization and locality weaknesses
 
 **Result: both weaknesses fixed.** On CounterFact single-edit (GPT-2-XL, EasyEdit's
-native token-accuracy metric), a semantic-key redesign lifts CAKE from a combined score of
+native token-accuracy metric), a semantic-key redesign lifts INLAY from a combined score of
 **0.33 to 0.90** — now clearly above ROME (0.67), the previous best on this benchmark.
 
 | method | ES (efficacy) | PS (generalization) | NS (locality) | **score** |
 |---|---|---|---|---|
-| CAKE v1 (raw hₗ) | 1.00 | **0.15** | **0.69** | 0.329 |
+| INLAY v1 (raw hₗ) | 1.00 | **0.15** | **0.69** | 0.329 |
 | ROME (prior best) | 0.955 | 0.43 | 0.88 | 0.665 |
-| **CAKE v2 (semantic key)** | **1.00** | **0.86** | **0.86** | **0.902** |
+| **INLAY v2 (semantic key)** | **1.00** | **0.86** | **0.86** | **0.902** |
 
 *v2 reported held-out: firing gate selected on a 100-record tune split, metrics reported on a
 disjoint 100-record test split — the number is not fit on its own evaluation set.*
 
 ## Diagnosis — why v1 failed
 
-CAKE v1 addressed its memory with the **raw last-token hidden state hₗ** of the written prompt.
+INLAY v1 addressed its memory with the **raw last-token hidden state hₗ** of the written prompt.
 A geometry probe over 40 CounterFact records measured what that key actually does, comparing the
 edit prompt against its paraphrases (should be CLOSE) and its neighborhood prompts (same relation,
 different subject — should be FAR):
@@ -33,7 +33,7 @@ hit from a neighbor on that geometry. That single fact caused **both** symptoms 
 
 ## The fix — a semantic addressing key (still zero-gradient)
 
-Change *what CAKE keys on*, nothing else:
+Change *what INLAY keys on*, nothing else:
 
 1. **Key = sentence embedding of the prompt** (`all-MiniLM-L6-v2`, 384-d, normalized), which maps
    paraphrases together and different subjects apart.
@@ -73,10 +73,10 @@ curve. The tune split picked 0.45; at that point the held-out test gives ES 1.00
 
 The paraphrase-generalization and locality weaknesses were a single root cause — a bad addressing
 key — and swapping in a semantic key fixes both without adding any training. On CounterFact
-single-edit, CAKE v2 now leads ROME on the combined metric while keeping CAKE's defining properties:
+single-edit, INLAY v2 now leads ROME on the combined metric while keeping INLAY's defining properties:
 gradient-free, non-destructive (zero weight change), reversible.
 
 ## Files
-- `gpt2_memory_semkey.py` — CAKE v2 (`GPT2WithSemanticMemory`)
+- `gpt2_memory_semkey.py` — INLAY v2 (`GPT2WithSemanticMemory`)
 - `eval_cf_semkey.py` — gate-sweep eval; `eval_cf_semkey_split.py` — held-out tune/test protocol
-- `cake_v2.json` / `cake_v2.csv` — all numbers incl. sweep + geometry probe
+- `inlay_v2.json` / `inlay_v2.csv` — all numbers incl. sweep + geometry probe

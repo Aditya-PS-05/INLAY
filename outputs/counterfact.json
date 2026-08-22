@@ -48,7 +48,7 @@
   "grad_steps": 100,
   "note": "single-edit rewrite_acc=0.0 under EasyEdit's default gpt2-xl config (5-layer spread tuned for BATCH editing; the update is too diffuse to flip a single fact). MEMIT's proper result is on the multi-subject BATCH benchmark, where it was the best weight-editor (eff 0.33, loc 0.67)."
  },
- "cake": {
+ "inlay": {
   "ES": 1.0,
   "PS": 0.15,
   "NS": 0.694,

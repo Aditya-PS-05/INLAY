@@ -1,7 +1,7 @@
 """
-Adaptive margin-gate sweep for CAKE at scale (CounterFact, GPT-2-XL).
+Adaptive margin-gate sweep for INLAY at scale (CounterFact, GPT-2-XL).
 
-CAKE's locality softened as the memory filled (fixed absolute gate 0.45: 1.0 -> 0.55
+INLAY's locality softened as the memory filled (fixed absolute gate 0.45: 1.0 -> 0.55
 at N=400) because a control query's TOP cosine match creeps up by chance as more
 slots are added. The margin gate fires only if (top_score - second_score) >= margin;
 a genuine match beats its runner-up by a wide margin at any N, a spurious control hit
@@ -23,7 +23,7 @@ GATE = float(sys.argv[3]) if len(sys.argv) > 3 else 0.45
 MARGINS = [0.0, 0.02, 0.05, 0.08, 0.10, 0.15, 0.20]
 CHECK_N = [50, 100, 200, 400]
 CHECK_N = [n for n in CHECK_N if n <= N]
-CAKE_LAYER, CAKE_ALPHA = 24, 10.0
+INLAY_LAYER, INLAY_ALPHA = 24, 10.0
 
 random.seed(0)
 CF = json.load(open("data/counterfact.json"))
@@ -33,7 +33,7 @@ controls = [r["neighborhood_prompts"][0] for r in ctrl_recs]
 tok_of = lambda r: (r["requested_rewrite"]["prompt"].format(r["requested_rewrite"]["subject"]),
                     r["requested_rewrite"]["target_new"]["str"], r["requested_rewrite"]["subject"])
 
-g = GPT2WithSemanticMemory(MODEL, layer=CAKE_LAYER, alpha=CAKE_ALPHA, n_slots_per_subkey=4096, key_mode="prompt")
+g = GPT2WithSemanticMemory(MODEL, layer=INLAY_LAYER, alpha=INLAY_ALPHA, n_slots_per_subkey=4096, key_mode="prompt")
 tok = g.tok
 def tgt_ids(s): return tok(" " + s.strip(), return_tensors="pt").input_ids[0]
 def hm(*xs):
@@ -114,7 +114,7 @@ for mg in MARGINS:
     margin_sweep[mg] = {"retention": round(ret,4), "locality": round(loc,4), "score_hm": round(hm(ret,loc),4)}
 
 best_margin = max(margin_sweep.items(), key=lambda kv: kv[1]["score_hm"])[0]
-result = {"method": "CAKE margin-gate", "model": MODEL, "n": N, "gate": GATE,
+result = {"method": "INLAY margin-gate", "model": MODEL, "n": N, "gate": GATE,
           "benchmark": "CounterFact", "margin_sweep": margin_sweep, "best_margin": best_margin,
           "best": margin_sweep[best_margin], "baseline_margin0": margin_sweep[0.0]}
 print("<<<JSON>>>"); print(json.dumps(result)); print("<<<END>>>")

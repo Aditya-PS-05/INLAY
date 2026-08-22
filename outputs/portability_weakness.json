@@ -4,7 +4,7 @@
  "n_probes": 30,
  "probe_source": "LLM-generated from 30 CounterFact edits",
  "weakness": {
-  "cake_rel_gate_0": {
+  "inlay_rel_gate_0": {
    "propagation": 1.0,
    "overfire": 0.9667
   },
@@ -17,7 +17,7 @@
    "overfire": 0.0
   }
  },
- "diagnosis": "CAKE's MiniLM prompt-embedding gate is dominated by subject/topic; same-subject different-relation queries score as high as genuine paraphrases (gate cosine same_mean 0.816 vs other_mean 0.749, overlapping). So CAKE plays back the edit on the wrong query 97% of the time.",
+ "diagnosis": "INLAY's MiniLM prompt-embedding gate is dominated by subject/topic; same-subject different-relation queries score as high as genuine paraphrases (gate cosine same_mean 0.816 vs other_mean 0.749, overlapping). So INLAY plays back the edit on the wrong query 97% of the time.",
  "fix": "relation gate \u2014 at read time compare the query's relation-residual (query embedding minus the SLOT's stored subject direction) to the slot's; fire only if it clears rel_gate. Subject known at write time, so NO read-time NER; stays zero-gradient.",
  "relation_gate_sweep": {
   "0.0": {
@@ -97,5 +97,5 @@
    }
   }
  },
- "honest_conclusion": "The relation gate is a genuine PARTIAL mitigation (over-fire 0.97->0.67), not a free fix: it costs CounterFact paraphrase generalization (PS 0.87->0.66) because reworded paraphrases and different-relation queries are both moves away from the exact written prompt. This over-firing is the structural signature of a retrieval-not-rederivation method and is CAKE's genuine remaining weakness."
+ "honest_conclusion": "The relation gate is a genuine PARTIAL mitigation (over-fire 0.97->0.67), not a free fix: it costs CounterFact paraphrase generalization (PS 0.87->0.66) because reworded paraphrases and different-relation queries are both moves away from the exact written prompt. This over-firing is the structural signature of a retrieval-not-rederivation method and is INLAY's genuine remaining weakness."
 }

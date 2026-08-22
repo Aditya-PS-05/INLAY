@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 # Resolve the AKEW datasets dir relative to THIS FILE, not the caller's cwd --
-# a caller running from cake_prototype/, cake_prototype/src/, or anywhere else
+# a caller running from inlay_prototype/, inlay_prototype/src/, or anywhere else
 # all resolve to the same real path instead of silently depending on cwd.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _DEFAULT_AKEW_DIR = os.path.normpath(os.path.join(_HERE, "..", "..", "AKEW", "repo", "datasets"))

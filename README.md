@@ -1,4 +1,12 @@
-# CAKE — Chunk-Addressable Knowledge Editing
+# INLAY — Gradient-Free Knowledge Editing with an External Addressable Memory
+
+> **Naming.** This method was called **CAKE** ("Chunk-Addressable Knowledge
+> Editing") until August 2026, when it was renamed **INLAY** after a search
+> against published work found the CAKE namespace contested. Commits and result
+> files dated before the rename use the old name; they are the same method.
+> The remote GPU paths (`~/kw/cake_prototype`, `~/cake/EasyEdit`) still carry
+> the old name on disk and are intentionally left alone so syncing keeps working.
+
 
 A minimal, working prototype of the idea you described: **inject a document into
 a model's "weights" without training, where the weights *point to* the data, and
@@ -73,7 +81,7 @@ Full numbers: `outputs/results.csv`, `outputs/results.json`,
 
 ## How this differs from ROME / MEMIT
 
-| | ROME / MEMIT | CAKE (this) |
+| | ROME / MEMIT | INLAY (this) |
 |---|---|---|
 | Cost per new item | gradient solve for a value + rank-one weight update | hash-write to a slot, **no gradient** |
 | Where knowledge goes | dissolved into a **shared** dense MLP matrix | its **own** slot |

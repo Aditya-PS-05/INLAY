@@ -47,7 +47,7 @@ every run). GPT-J runs on ohio (`rm2_*_gptj.log`), Qwen on virginia
 |-----------------|----------|------------|
 | in_context (RAG)| 0.3964   | 0.4381     |
 | WISE†           | 0.3425   | 0.1421     |
-| INLAY (cake)    | 0.2253   | 0.2871     |
+| INLAY (inlay)    | 0.2253   | 0.2871     |
 | AlphaEdit       | 0.1409   | 0.1683     |
 | ROME            | 0.1314   | 0.1453     |
 | base            | 0.0740   | 0.1522     |
@@ -108,7 +108,7 @@ Headline findings:
 ## D2. vNext audit: gate-bypass and product-key capacity bugs (fixed, validated)
 
 Two confirmed bugs from a full code audit, both fixed on branch `vnext-gatefix`
-(baseline preserved at git tag `cake-current`, commit `efaff81`):
+(baseline preserved at git tag `inlay-current`, commit `efaff81`):
 
 **Bug A (gate bypass, CRITICAL for validity):** `answer_playback()` in
 `gpt2_memory_semkey.py`, the function every real generation path runs through
@@ -132,7 +132,7 @@ the single-edit-isolated protocol clears memory before every write, and the
 row-major allocator over the full grid regardless.
 
 **Validation rerun (rel_gate=0.2, the exact operating point behind the
-published "0.97 -> 0.67" claim), CAKE only, matched manifest:**
+published "0.97 -> 0.67" claim), INLAY only, matched manifest:**
 
 | aggregate | published (bug-affected) | corrected (fix genuinely active) | Δ |
 |---|---|---|---|

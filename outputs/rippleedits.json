@@ -3,7 +3,7 @@
  "split": "popular",
  "n_edits": 100,
  "model": "gpt-j-6B",
- "protocol": "generation-based (greedy 24 tok, gold value/alias substring match, per-group AND/OR test_condition); condition_queries precondition filter omitted. base/in_context/cake score the SAME first-100 shuffled(seed=0) examples (no skip logic). ROME uses a different sample: eval_rome_ripple.py skips any example whose edit prompt lacks ' is ' or whose subject can't be extracted by a crude 'text after last \" of \"' heuristic, so ROME's 100 edits are NOT guaranteed identical to the other three, and the heuristic may extract wrong subject spans for kept edits.",
+ "protocol": "generation-based (greedy 24 tok, gold value/alias substring match, per-group AND/OR test_condition); condition_queries precondition filter omitted. base/in_context/inlay score the SAME first-100 shuffled(seed=0) examples (no skip logic). ROME uses a different sample: eval_rome_ripple.py skips any example whose edit prompt lacks ' is ' or whose subject can't be extracted by a crude 'text after last \" of \"' heuristic, so ROME's 100 edits are NOT guaranteed identical to the other three, and the heuristic may extract wrong subject spans for kept edits.",
  "criteria_types": {
   "propagation": [
    "Logical_Generalization",
@@ -43,7 +43,7 @@
    "preservation_avg": 0.2812,
    "aggregate": 0.3925
   },
-  "cake": {
+  "inlay": {
    "criteria": {
     "Logical_Generalization": 0.0333,
     "Compositionality_I": 0.1363,
@@ -72,16 +72,16 @@
  },
  "ranking_aggregate": [
   "RAG 0.393",
-  "CAKE 0.221",
+  "INLAY 0.221",
   "ROME 0.078",
   "Base 0.073"
  ],
  "key_findings": [
   "RAG (in-context) wins the aggregate \u2014 the model reasons over the new fact in context, so ripples propagate.",
   "ROME scores ~base (0.078 vs 0.073) on this run, but ROME's sample and subject spans come from a crude heuristic that both filters edits and may mis-extract subjects, so its number is indicative only, not a rigorously matched comparison (see sampling_caveat).",
-  "CAKE is mid on propagation (0.307) and WINS Subject_Aliasing (0.816 \u2014 an alias of the edited subject still hits the slot).",
-  "CAKE is WORST of all four on preservation (0.049): it over-fires, destroying unrelated same-subject facts (Relation_Specificity 0.061, Forgetfulness 0.036) \u2014 worse than the unedited base.",
-  "This is the measured, published-benchmark confirmation of CAKE's structural weakness: retrieval-not-rederivation cannot chain edits and over-writes neighbors."
+  "INLAY is mid on propagation (0.307) and WINS Subject_Aliasing (0.816 \u2014 an alias of the edited subject still hits the slot).",
+  "INLAY is WORST of all four on preservation (0.049): it over-fires, destroying unrelated same-subject facts (Relation_Specificity 0.061, Forgetfulness 0.036) \u2014 worse than the unedited base.",
+  "This is the measured, published-benchmark confirmation of INLAY's structural weakness: retrieval-not-rederivation cannot chain edits and over-writes neighbors."
  ],
- "sampling_caveat": "FAIRNESS LIMITATION: base/RAG/CAKE share an identical query set; ROME's set may differ due to subject-extraction filtering. ROME's low score (0.078, ~base) is therefore a weaker claim than the other three \u2014 treat ROME here as indicative, not a rigorously matched comparison. The RAG-vs-CAKE contrast (identical queries) is sound."
+ "sampling_caveat": "FAIRNESS LIMITATION: base/RAG/INLAY share an identical query set; ROME's set may differ due to subject-extraction filtering. ROME's low score (0.078, ~base) is therefore a weaker claim than the other three \u2014 treat ROME here as indicative, not a rigorously matched comparison. The RAG-vs-INLAY contrast (identical queries) is sound."
 }

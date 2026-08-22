@@ -5,7 +5,7 @@ EasyEdit's OWN native metrics (the reference implementation's scoring):
   PS = post rephrase_acc  (same, on a paraphrase)
   NS = post locality acc  (neighborhood answer preserved vs pre-edit)
 These are the canonical numbers ROME/MEMIT are judged on. eval_cf.py implements
-the IDENTICAL token-accuracy metric for base/RAG/CAKE so the columns compare.
+the IDENTICAL token-accuracy metric for base/RAG/INLAY so the columns compare.
 Run from EasyEdit/. Usage: python eval_cf_edit.py ROME|MEMIT <N>
 Emits one JSON blob between <<<JSON>>> markers.
 """

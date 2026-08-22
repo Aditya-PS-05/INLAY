@@ -1,12 +1,12 @@
 """
-Tests folding IKE's demonstration mechanism into CAKE's own REASON path,
+Tests folding IKE's demonstration mechanism into INLAY's own REASON path,
 directly following the finding in akew_baseline_comparison_results.md (plain
-IKE beat CAKE-without-demonstrations 90.48% to 87.07%). Reuses the full
+IKE beat INLAY-without-demonstrations 90.48% to 87.07%). Reuses the full
 router (retrieval + v2 verifier + REJECT/DIRECT/REASON) but the REASON path
 now includes 2 IKE-style demonstrations, on top of the retrieval/
 verification/REJECT machinery plain IKE structurally lacks.
 
-Usage: python akew_cake_plus_ike_eval.py <dataset> <input_mode> [limit]
+Usage: python akew_inlay_plus_ike_eval.py <dataset> <input_mode> [limit]
 """
 import sys, json, random
 sys.path.insert(0, "src")
@@ -83,8 +83,8 @@ for c in test:
 n = len(hits)
 out = {"dataset": DATASET, "input_mode": MODE, "n": n, "model": MODEL_NAME, "demo_mode": DEMO_MODE,
        "accuracy": {
-           "cake_routed_plus_ike_demos": round(sum(hits) / n, 4) if n else None,
-           "cake_routed_no_demos": round(sum(hits_no_demo) / n, 4) if n else None,
+           "inlay_routed_plus_ike_demos": round(sum(hits) / n, 4) if n else None,
+           "inlay_routed_no_demos": round(sum(hits_no_demo) / n, 4) if n else None,
        },
        "router_decision_distribution": decision_counts,
        "sample_examples": examples_log}

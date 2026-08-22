@@ -6,9 +6,9 @@ knowledge editing:
   generalization = fraction recalled on a PARAPHRASED query
   locality       = fraction of unrelated control prompts unchanged vs base
 
-Runs base / in_context / finetune / cake in this process.
+Runs base / in_context / finetune / inlay in this process.
 ROME/MEMIT are run separately by bench_multi_edit.py (needs EasyEdit env).
-Usage: python bench_multi.py <model> <cake_layer> <cake_alpha> <n_sub>
+Usage: python bench_multi.py <model> <inlay_layer> <inlay_alpha> <n_sub>
 Emits one JSON blob between <<<JSON>>> markers.
 """
 import time, json, sys, torch
@@ -19,10 +19,10 @@ from gpt2_memory import GPT2WithMemory
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 MODEL = sys.argv[1] if len(sys.argv) > 1 else "gpt2"
-CAKE_LAYER = int(sys.argv[2]) if len(sys.argv) > 2 else 6
-CAKE_ALPHA = float(sys.argv[3]) if len(sys.argv) > 3 else 10.0
-CAKE_NSUB  = int(sys.argv[4]) if len(sys.argv) > 4 else 256
-CAKE_MINSCORE = 0.9
+INLAY_LAYER = int(sys.argv[2]) if len(sys.argv) > 2 else 6
+INLAY_ALPHA = float(sys.argv[3]) if len(sys.argv) > 3 else 10.0
+INLAY_NSUB  = int(sys.argv[4]) if len(sys.argv) > 4 else 256
+INLAY_MINSCORE = 0.9
 
 D = json.load(open("facts24.json"))
 FACTS, CONTROL = D["facts"], D["control"]
@@ -78,22 +78,22 @@ result["finetune"] = {"efficacy": score_gen(lambda q: greedy(ft, q)),
                       "write_s": round(ftw,3), "grad_steps": 60}
 del ft, opt; torch.cuda.empty_cache()
 
-# ---- CAKE ----
-g = GPT2WithMemory(MODEL, layer=CAKE_LAYER, alpha=CAKE_ALPHA, n_slots_per_subkey=CAKE_NSUB, topk=1)
+# ---- INLAY ----
+g = GPT2WithMemory(MODEL, layer=INLAY_LAYER, alpha=INLAY_ALPHA, n_slots_per_subkey=INLAY_NSUB, topk=1)
 t0 = time.time()
 for _, p, t, _, _ in FACTS:
     g.write_chunk(p, t.strip())
 cw = time.time()-t0
 g.set_read(True)
-eff = score_gen(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=CAKE_MINSCORE)[0])
-gen = score_gen(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=CAKE_MINSCORE)[0], True)
+eff = score_gen(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=INLAY_MINSCORE)[0])
+gen = score_gen(lambda q: g.answer_playback(q, max_new_tokens=6, min_score=INLAY_MINSCORE)[0], True)
 g.set_read(False)
 bc = {p: g.answer(p, max_new_tokens=4) for p in CONTROL}
 g.set_read(True)
-loc = sum(g.answer_playback(p, max_new_tokens=4, min_score=CAKE_MINSCORE)[0]==bc[p] for p in CONTROL)
-result["cake"] = {"efficacy": eff, "generalization": gen,
+loc = sum(g.answer_playback(p, max_new_tokens=4, min_score=INLAY_MINSCORE)[0]==bc[p] for p in CONTROL)
+result["inlay"] = {"efficacy": eff, "generalization": gen,
                   "locality": round(loc/len(CONTROL),3),
-                  "write_s": round(cw,3), "grad_steps": 0, "min_score": CAKE_MINSCORE}
+                  "write_s": round(cw,3), "grad_steps": 0, "min_score": INLAY_MINSCORE}
 g.close()
 
 print("<<<JSON>>>"); print(json.dumps(result)); print("<<<END>>>")

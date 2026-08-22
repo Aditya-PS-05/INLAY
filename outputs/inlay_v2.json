@@ -3,7 +3,7 @@
  "model": "gpt2-xl",
  "metric": "EasyEdit native token-accuracy (ES/PS/NS); score=harmonic mean",
  "fix": "semantic key: address the product-key memory with a MiniLM sentence embedding of the prompt (JL-projected to residual dim), replacing the raw last-token hidden state h_L. GPT-2 frozen, value/injection path unchanged, still zero-gradient.",
- "cake_v1_rawhL": {
+ "inlay_v1_rawhL": {
   "ES": 1.0,
   "PS": 0.15,
   "NS": 0.694,
@@ -17,14 +17,14 @@
   "score_hm": 0.665,
   "n": 100
  },
- "cake_v2_semkey_pooled_N100": {
+ "inlay_v2_semkey_pooled_N100": {
   "best_gate": 0.45,
   "ES": 1.0,
   "PS": 0.85,
   "NS": 0.82,
   "score_hm": 0.883,
   "sweep": {
-   "method": "CAKE-semkey(prompt)",
+   "method": "INLAY-semkey(prompt)",
    "model": "EasyEdit/hugging_cache/gpt2-xl",
    "n": 100,
    "metric": "EasyEdit native token-accuracy (ES/PS/NS)",
@@ -87,7 +87,7 @@
    "score_hm": 0.8834
   }
  },
- "cake_v2_semkey_heldout": {
+ "inlay_v2_semkey_heldout": {
   "selected_gate": 0.45,
   "n_tune": 100,
   "n_test": 100,
