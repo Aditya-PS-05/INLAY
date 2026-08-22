@@ -8,3 +8,4 @@ outputs/akew_verifier_ckpt/
 outputs/akew_verifier_ckpt_v2/
 outputs/akew_verifier_ablation_random/
 outputs/akew_verifier_ablation_specificity/
+.venv-paper/
