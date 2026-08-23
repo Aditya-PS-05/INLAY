@@ -1,0 +1,704 @@
+\documentclass{article}
+
+% NeurIPS 2026 Workshop submission.
+% Track: dblblindworkshop (double-blind review, per CL4FMAgents CFP).
+\usepackage[dblblindworkshop]{neurips_2026}
+\workshoptitle{Continual Learning in the Era of Foundation Models and Embodied Agents}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\title{Scope Classification as a Continual-Editing Bottleneck: A Negative
+Result on Current Knowledge-Editing Benchmarks, with a Gradient-Free Case
+Study}
+
+\author{%
+  Author Name Redacted for Review \\
+  Affiliation Redacted for Review \\
+  \texttt{email@redacted-for-review.example}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+An agent that keeps learning after deployment needs a mechanism to decide,
+for each incoming query, whether a piece of knowledge it acquired since
+training actually applies. This \textbf{scope decision} sits at the core of
+every memory-based knowledge editor in the SERAC lineage and is the same
+decision continual-learning systems need for online knowledge
+consolidation, a plausible building block for lifelong editing of
+foundation-model agents. We report that current knowledge-editing
+benchmarks cannot measure whether this mechanism works at all. Using INLAY,
+a gradient-free editor built to obtain exact per-query ground truth --- the
+base model is frozen, edits live in an external addressable memory, and
+applying an edit is a bias added along one token's unembedding direction at
+decode time, so every routing action is a real, cheaply executable code
+path --- we execute \emph{every} candidate router action on $1{,}689$
+queries spanning three datasets and three input conditions. An oracle
+router choosing the best action every time ties a one-line static policy to
+four decimal places in \emph{all nine} dataset-by-condition cells: the
+maximum attainable gain of any per-query routing method is $0.00$ points,
+and abstention is the sole winning action zero times out of $1{,}689$. The
+cause is structural, not specific to our system: these are counterfactual
+benchmarks whose evaluation question asks for the post-edit answer, so a
+benchmark without negatives cannot reward a classifier's ability to reject
+--- meaning it cannot validate the exact mechanism a continually updating
+agent needs to avoid overriding correct standing knowledge with a stale or
+misapplied edit. This generalizes to the whole scope-classifier family the
+benchmarks evaluate, not just our system. We confirm the mechanism
+directly: withholding a query's own edit from the retrieval index for half
+the sample moves pooled headroom from exactly $+0.0000$ to $+0.0420$ and
+gives abstention its first wins. We also report where INLAY itself does not
+win --- WISE beats it on Qwen2.5-7B CounterFact, and retrieval-augmented
+generation beats every method we tested, INLAY included, on rigorously
+matched RippleEdits --- and disclose two bugs found during a self-audit of
+our own routing machinery, neither of which changed a published headline
+number outside noise. The actionable takeaway for a community building
+lifelong-editing benchmarks: without out-of-scope negatives, no
+scope-classifier evaluation on these suites can distinguish a real routing
+decision from a one-line heuristic.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Foundation-model agents that operate continually need to acquire new facts
+after deployment without re-touching the weights that hold everything else
+they know. One increasingly common answer is architectural: freeze the base
+model and route knowledge updates through an external, addressable memory
+consulted at inference time
+\citep{mitchell2022serac,hartvigsen2023grace,wang2024wise}. This sidesteps
+catastrophic forgetting by construction --- the shared weights never move
+--- but introduces a failure mode gradient-based editing does not have:
+every incoming query now needs a \textbf{scope decision} deciding whether a
+stored update governs it, an in-context demonstration should fire, or the
+model should simply answer from what it already knows. Get this wrong in a
+lifelong deployment and the system either overrides correct standing
+knowledge with a stale edit, or fails to apply an update it should have
+used. SERAC's scope classifier \citep{mitchell2022serac} is the namesake
+instance, but the same decision recurs under different names in every
+architecture pairing a frozen or lightly-modified base model with an
+external correction mechanism --- exactly the memory-and-consolidation
+pattern this workshop's call identifies as central to continual learning.
+
+We built one such system, executed every action it could take on every
+query in three standard knowledge-editing benchmarks, and found that the
+decision this entire architecture family is built around cannot be
+rewarded by the benchmarks currently used to evaluate it: if the
+benchmarks cannot tell a working router from a one-line heuristic, we have
+no evidence that any deployed scope-classified continual-editing system
+makes this decision well, only that it scores well on a metric that does
+not depend on the decision.
+
+\paragraph{Why we can say this with certainty rather than suspicion.}
+Rather than indirect evidence (an ablation that shouldn't matter doesn't,
+or a simpler baseline is competitive), we computed the \emph{ceiling}. For
+$1{,}689$ queries across CounterFact, WikiUpdate, and MQuAKE-CF in
+structured, unstructured, and extracted-evidence conditions, we executed
+\emph{every} candidate action (recite the stored edit, reason over
+retrieved evidence, or abstain) and scored every outcome, giving per-query
+ground truth for which action is correct. An oracle router that always
+picks the best available action is \emph{exactly} equal to a one-line
+static policy in all nine cells (\S\ref{sec:headroom}): there is no
+headroom to find, because abstention --- the action a scope classifier
+exists to choose, and the action a lifelong agent needs whenever new
+information does \emph{not} apply --- is the sole winning action zero
+times.
+
+\paragraph{Where INLAY fits.} To get that ground truth we needed a system
+whose every action could actually be executed and scored under identical
+conditions, including a gradient-free recitation path cheap enough to make
+testing all $1{,}689 \times 3$ candidate actions tractable. We built INLAY:
+the base model stays frozen, each edit is a row in an external addressable
+memory, and applying an edit adds a logit-space bias along the answer's
+unembedding direction at decode time. Writing is a table insertion, about
+$5$--$15$\,ms with no gradient step; deleting an edit is removing the row;
+and when no edit fires, output is unchanged bit for bit --- properties
+that matter for an agent consolidating many small updates over a long
+deployment. INLAY is competitive with or ahead of gradient-based editors on
+direct single-fact editing (\S\ref{sec:results}), but not always the
+strongest method we tested, and we report the cases where it loses plainly
+(\S\ref{sec:results}, \S\ref{sec:ripple}); it is the vehicle for this
+paper's central claim about benchmark coverage, not the claim itself.
+
+\paragraph{Contributions.}
+\textbf{(i)} A negative result with a measured ceiling, not a suspicion, on
+$1{,}689$ queries with per-action ground truth: an oracle router ties a
+one-line static policy exactly in every cell, and abstention is never
+uniquely correct (\S\ref{sec:headroom}--\S\ref{sec:cannot-measure}).
+\textbf{(ii)} INLAY, a gradient-free editor with exact deletion and locality
+by construction --- properties suited to a lifelong-editing setting where
+updates accumulate and must remain individually revocable --- evaluated
+across four model families and all three AKEW input conditions
+(\S\ref{sec:method}--\S\ref{sec:results}).
+\textbf{(iii)} An honest accounting of where INLAY loses (WISE on
+Qwen2.5-7B CounterFact; RAG on matched RippleEdits) and a transparent
+self-audit of our own routing machinery, including a gate-bypass bug that
+made a measured mitigation inactive in the runs behind our own published
+numbers (\S\ref{sec:results}, \S\ref{sec:ripple}, \S\ref{sec:audit}).
+\textbf{(iv)} A constructed out-of-scope condition confirming the mechanism
+behind the negative result, moving pooled headroom from $+0.0000$ to
+$+0.0420$ (\S\ref{sec:cannot-measure}) --- a concrete recipe the
+continual-learning benchmark community can build on.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Weight editing.}
+ROME \citep{meng2022rome} solves for a rank-one update to a mid-layer MLP;
+MEMIT \citep{meng2023memit} spreads many updates across several layers for
+mass editing; AlphaEdit \citep{fang2025alphaedit} projects the update into
+the null space of preserved knowledge. All three mutate shared parameters,
+making sequential, lifelong application of many edits a stability question
+in its own right \citep{hase2023localization}.
+
+\paragraph{Memory-based and scope-classified editing.}
+SERAC \citep{mitchell2022serac} introduces a scope classifier deciding
+whether an edit applies --- the family most relevant to test-time continual
+adaptation, since the base model is never touched. MEND
+\citep{mitchell2022mend} learns a gradient transform; IKE
+\citep{zheng2023ike} shows few-shot demonstrations can teach a model to
+prefer an injected fact over its parametric belief; GRACE
+\citep{hartvigsen2023grace} and WISE \citep{wang2024wise} add discrete
+codebooks and side memories, each with its own routing decision at
+generation time. \textbf{We build directly on SERAC's scope-classifier
+idea and IKE's demonstration mechanism; neither is claimed as novel here.}
+Our addressing follows product-key memory \citep{lample2019pkm} and
+nearest-neighbour language models \citep{khandelwal2020knnlm}.
+
+\paragraph{Benchmarks.}
+CounterFact and zsRE evaluate single-fact edits; RippleEdits
+\citep{cohen2024ripple} adds entailed consequences; MQuAKE
+\citep{zhong2023mquake} adds multi-hop chains; AKEW \citep{wu2024akew}
+supplies unstructured and extracted evidence alongside clean triples. None
+were designed with continual, multi-session deployment in mind, and
+\S\ref{sec:headroom}--\S\ref{sec:cannot-measure} is a claim about what this
+entire family can and cannot measure, independent of which
+scope-classified method is scored on it.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/fig1_architecture.pdf}
+  \caption{\textbf{(a)} Weight editing rewrites state shared by every fact.
+  INLAY leaves the model frozen and appends a row to a table beside it.
+  \textbf{(b)} The intervention is a bias along one token's unembedding
+  direction at the final decoding step, so it moves exactly one score. When
+  the gate does not fire, nothing is added and output is bitwise identical.}
+  \label{fig:arch}
+\end{figure}
+
+\section{Method: INLAY}
+\label{sec:method}
+
+INLAY exists to make the routing question in \S\ref{sec:headroom} answerable
+with exact, executable ground truth: every candidate action must be a real
+code path we can run and score, including a gradient-free recitation path
+cheap enough to execute at scale. We describe it briefly here; it is the
+vehicle for this paper's argument, not its subject.
+
+\paragraph{Design.}
+The model is frozen. Each edit is a row holding a key (an embedding of the
+fact's question form), the answer's token sequence, and metadata
+(Figure~\ref{fig:arch}a). \textbf{Writing is insertion}, not optimization ---
+no gradients, no covariance statistics, measured at $5$--$15$\,ms.
+\textbf{Deletion is exact:} removing the row removes the edit, which matters
+when removal is a regulatory obligation rather than a nicety, and when a
+lifelong deployment needs to revoke an update without disturbing anything
+else it has learned since (see the Ethics Statement).
+\textbf{Edits cannot interfere:} they are physically separate state, so
+accumulating many updates over a long deployment does not degrade earlier
+ones the way sequential weight edits can (\S\ref{sec:sequential}).
+
+\paragraph{Addressing.}
+Keys come from a sentence encoder \citep{reimers2019sbert} rather than the
+base model's hidden states: it is fast, its geometry is purpose-trained for
+paraphrase matching, and it stays fixed if the base model is swapped. Keys
+are compressed with a Johnson--Lindenstrauss random projection
+\citep{johnson1984jl}, chosen over a learned projection because a learned
+one would drift as the edit distribution changed and would silently
+invalidate every stored key --- an important property for a memory store
+that is meant to keep growing over an agent's lifetime.
+
+\paragraph{Gating and playback.}
+Retrieval always returns \emph{something}. A gate stacks an absolute
+similarity threshold, a margin over the runner-up, and a relation-residual
+check asking whether the query concerns the stored relation rather than
+merely the stored subject (we return to the reliability of this gate in
+\S\ref{sec:audit}). When the gate fires, playback walks the stored token
+sequence and, at each decoding step, adds a bias along that token's
+unembedding column so it wins the argmax (Figure~\ref{fig:arch}b).
+Intervening in logit space rather than hidden state is a safety argument: a
+logit bias moves exactly one score, while a hidden-state edit propagates
+through the unembedding to every token's logit in ways that are hard to
+bound, and because the intervention is gated, a silent gate leaves behaviour
+bitwise unchanged.
+
+\section{Experimental Setup}
+\label{sec:setup}
+
+Base models: GPT-2-XL (1.5B), GPT-J-6B, Qwen2.5-7B, and Mistral-7B-v0.3.
+Benchmarks: CounterFact, zsRE, RippleEdits \citep{cohen2024ripple}, and AKEW
+\citep{wu2024akew} over CounterFact, WikiUpdate and MQuAKE-CF in structured,
+unstructured and extracted conditions. Baselines run through EasyEdit
+\citep{wang2023easyedit}.
+
+Two commitments are worth stating because they cost us results. Splits are
+\textbf{subject-disjoint}: a subject never crosses a train/test boundary, so
+a learned component cannot memorize an entity and appear to generalize.
+Scoring uses \textbf{one convention everywhere} --- diacritic- and
+case-insensitive substring match against gold and its aliases --- rather
+than each method's internal metric, so numbers are comparable across
+methods that report differently. All runs use \texttt{sequential\_edit=True}
+with an explicit state-dict snapshot and restore under harness control; an
+earlier configuration bug and a second bug that invalidated an earlier round
+of matched RippleEdits numbers are discussed in \S\ref{sec:audit}.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Edit accuracy and write cost}
+\label{sec:accuracy}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.52\textwidth]{figures/fig2_edit_accuracy.pdf}
+  \caption{Edit accuracy on CounterFact, structured input, GPT-J-6B, $n=147$,
+  with 95\% Wilson intervals \citep{wilson1927interval}. Scored with a single
+  convention rather than each method's internal metric.}
+  \label{fig:acc}
+\end{figure}
+
+Figure~\ref{fig:acc} gives the GPT-J-6B comparison. AlphaEdit is the
+strongest weight editor at $89.12\%$; ROME and MEMIT tie at $83.67\%$. WISE
+reaches only $66.67\%$ despite EasyEdit's own post-edit metric reporting the
+edit landed on $141$ of $147$ examples, because its side-memory routing is
+an additional failure point in-place updates lack; GRACE reads exactly
+$0.0$ on every edit, its radius-based key rarely firing on paraphrases. On
+the harmonic-mean score across ES/PS/NS at $N{=}2000$, INLAY leads at
+$0.8926$ against ROME's $0.797$, WISE's $0.703$, AlphaEdit's $0.4595$, and
+MEMIT's $0.4314$, writing in $5$--$15$\,ms with no gradient step against
+seconds for gradient-based editors --- a ratio of roughly $1600\times$ that
+compounds directly with the number of edits a continually updating agent
+makes over its lifetime.
+
+\textbf{This ranking does not hold on every model.} On Qwen2.5-7B
+CounterFact at $N{=}2000$, WISE reaches a harmonic-mean score of
+$\mathbf{0.9466}$ against INLAY's $\mathbf{0.8944}$ at $N{=}5000$ ---
+\emph{WISE wins on Qwen}, the one place in our CounterFact results where
+INLAY is not the strongest method. We report this plainly rather than
+selecting the model on which INLAY leads. Full per-model ES/PS/NS/write-cost
+tables for CounterFact and zsRE across all four model families are provided
+in the released code and the companion full-length version of this paper
+(cited in \S\ref{sec:conclusion}); Appendix~\ref{sec:appendix-tables} gives a
+condensed summary.
+
+Weight-editing methods need a \texttt{(prompt, target)} pair to compute an
+update from and have no mechanism for unstructured evidence, so on AKEW's
+unstructured and extracted conditions they are not merely worse but
+inapplicable. INLAY handles all three conditions, with accuracy lower on
+extracted input ($78.23\%$) than on unstructured prose ($87.07\%$) despite
+retrieval finding the correct card $98.64\%$ of the time in both, which
+locates the loss in extraction noise rather than retrieval.
+
+\subsection{Compositional propagation: RippleEdits}
+\label{sec:ripple}
+
+RippleEdits tests whether an edit's entailed consequences propagate while
+unrelated same-subject facts are preserved --- a compositional axis that
+single-fact CounterFact and zsRE cannot probe, and the axis most relevant to
+whether a lifelong-editing system's updates interact safely with each
+other over time. An early, less rigorous comparison put INLAY's preservation
+at $0.049$, the worst of the methods compared, and this number was the
+basis for an earlier framing of INLAY's boundary as a loss to weight-editing
+methods. \textbf{That framing does not survive a rigorous comparison, and we
+correct it here.}
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Method & GPT-J-6B & Qwen2.5-7B \\
+    \midrule
+    in-context (RAG) & \textbf{0.3964} & \textbf{0.4381} \\
+    WISE$^\dagger$   & 0.3425 & 0.1421 \\
+    INLAY            & 0.2253 & 0.2871 \\
+    AlphaEdit        & 0.1409 & 0.1683 \\
+    ROME             & 0.1314 & 0.1453 \\
+    base             & 0.0740 & 0.1522 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Matched-manifest RippleEdits (identical wikidata-verified
+  subjects across every method, $n{=}100$ edits, generation-based scoring,
+  edit-applied verified for every run). $\dagger$~WISE runs in its native
+  sequential-accumulating mode; every other method is single-edit isolated
+  with a per-edit weight restore.}
+  \label{tab:ripple}
+\end{table}
+
+Table~\ref{tab:ripple} gives the corrected, matched-manifest protocol:
+identical wikidata-verified subjects for every method on both models,
+generation-based scoring, and edit application independently verified.
+\textbf{Retrieval-augmented generation leads every method we tested on both
+models}, ahead of every gradient-free and weight-editing method alike.
+\textbf{The paper's honest limitation is therefore that INLAY loses to RAG,
+not that it loses to the weight-editing family}: on Qwen2.5-7B, INLAY's
+$0.2871$ beats every weight/adapter editor we ran, and on GPT-J-6B it beats
+ROME and AlphaEdit while trailing WISE's side-memory accumulation mode. The
+mechanism behind INLAY's own weakness here is scope precision on hard
+negatives (same-subject, different-relation queries), and it is exactly
+where a benchmark with negatives, unlike CounterFact or zsRE, can see it ---
+foreshadowing the paper's central argument in \S\ref{sec:cannot-measure}.
+
+\subsection{Sequential editing: naming which method collapses}
+\label{sec:sequential}
+
+On GPT-2-XL, ROME's retention and locality both collapse to $0.0$ by
+$n{=}25$ sequential edits, and the same collapse reproduces on GPT-J-6B ---
+a direct threat to any lifelong-editing pipeline built on ROME-style
+updates. \textbf{MEMIT does not exhibit this failure mode on GPT-J-6B}: it
+holds retention and locality at $1.0$ through the recorded checkpoints,
+consistent with MEMIT's design goal of spreading updates across layers
+specifically to support mass editing. We narrow the claim to name ROME
+specifically: weight editing is not inherently unstable under repeated
+edits, and a method built for mass editing does not show the same failure a
+method built for surgical single-edit updates does. (MQuAKE-CF multi-hop
+results, where a per-hop retrieval-miss fallback more than triples accuracy
+over a naive baseline, are reported in the companion full-length version of
+this paper and omitted here for space; the MQuAKE-CF cells of the headroom
+analysis below are unaffected by this omission.)
+
+\section{The Limits of Routing on Current Benchmarks}
+\label{sec:headroom}
+
+Every method in the scope-classified family includes a \textbf{scope
+decision}: given a query, does a stored edit apply, and what should be done
+about it? This is the exact decision a continually updating agent needs to
+make correctly, over and over, for every query it ever sees after its first
+knowledge update. We built increasingly careful machinery for this decision,
+measured statistically significant gains from it, and then found the gains
+were not what they appeared to be.
+
+Gating was net-negative on MQuAKE-CF in every input condition, by up to
+$15.87$ points. Two natural fixes failed diagnostically: recalibrating the
+verifier threshold moved the false-fire rate from $18.33\%$ to only
+$18.22\%$, and raising the confidence threshold from $0.85$ to $0.97$
+changed \emph{nothing} --- byte-identical decisions, because confidence on
+the \emph{wrong} retrievals already exceeded $0.97$. A head trained to
+predict retrieval reliability from the \emph{shape} of the candidate set
+(margins, threshold counts, entropy), fit on CounterFact and WikiUpdate
+with MQuAKE-CF held out, reached $0.956$ AUROC and produced $+15.9$ points
+on two MQuAKE-CF cells ($p{=}0.0019$, Holm-corrected \citep{holm1979}) ---
+evidence, it seemed, of a working adaptive routing decision.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.55\textwidth]{figures/fig3_headroom.pdf}
+  \caption{Every candidate action executed and scored on $1{,}689$ queries
+  (CF = CounterFact, MQ = MQuAKE-CF). The oracle ring is concentric with the
+  static-policy point in all nine cells: the best attainable router and one
+  line of code are indistinguishable.}
+  \label{fig:headroom}
+\end{figure}
+
+\paragraph{Measuring the ceiling.}
+Rather than continue improving the router, we measured its ceiling. For
+$1{,}689$ queries across all three datasets and conditions we executed
+\emph{every} candidate action and scored the result, yielding per-query
+ground truth for which actions work.
+
+\textbf{An oracle router choosing the best available action on every query is
+exactly equal to a one-line static policy} --- recite directly where legal,
+otherwise reason over the retrieved evidence --- to four decimal places in
+all nine cells (Figure~\ref{fig:headroom}, Table~\ref{tab:headroom}). The
+maximum attainable gain of any per-query routing method over one line of
+code is $0.00$ points.
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{@{}llrrr@{}}
+    \toprule
+    Dataset & Condition & $n$ & Static & Oracle \\
+    \midrule
+    CounterFact & structured   & 250 & 1.0000 & 1.0000 \\
+    CounterFact & unstructured & 250 & 0.9040 & 0.9040 \\
+    CounterFact & extracted    & 250 & 0.8400 & 0.8400 \\
+    WikiUpdate  & structured   & 250 & 0.9960 & 0.9960 \\
+    WikiUpdate  & unstructured & 250 & 0.4280 & 0.4280 \\
+    WikiUpdate  & extracted    & 250 & 0.4800 & 0.4800 \\
+    MQuAKE-CF   & structured   &  63 & 1.0000 & 1.0000 \\
+    MQuAKE-CF   & unstructured &  63 & 0.8095 & 0.8095 \\
+    MQuAKE-CF   & extracted    &  63 & 0.8571 & 0.8571 \\
+    \midrule
+    \multicolumn{2}{@{}l}{\textbf{Pooled}} & \textbf{1689}
+      & \textbf{0.7874} & \textbf{0.7874} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Headroom is $+0.0000$ in every cell. ``Static'' is one line of
+  code with no model and no training; ``Oracle'' is an upper bound no real
+  router can exceed.}
+  \label{tab:headroom}
+\end{table}
+
+The mechanism is stark: abstention succeeded on $19$ of $1{,}689$ queries,
+and on all $19$ of those, reasoning or direct recitation succeeded too.
+\textbf{Abstention is the sole winning action zero times.} The gains
+reported above from the shape-based head are real, and we stand behind the
+numbers, but the \emph{explanation} was wrong: there is no per-query
+decision worth making on these benchmarks, so what the head does is
+suppress gates that misfire, converging toward the static policy. Its gains
+measure the harm the fixed gates were doing, not insight it adds.
+
+\section{Why Abstention Cannot Be Measured Here}
+\label{sec:cannot-measure}
+
+The reason is structural. These are \textbf{counterfactual} benchmarks: the
+evaluation question asks for the \emph{post-edit} answer, so answering from
+parametric knowledge returns the \emph{pre-edit} value, which is wrong by
+construction. No query in the suite has ``no edit applies, answer from what
+you know'' as its correct behaviour.
+
+This generalizes beyond our system and is the paper's central point for the
+continual-learning audience: scope classification is load-bearing for the
+SERAC-descendant family \citep{mitchell2022serac}, whose premise is a
+learned decision about whether a stored edit applies, and on these
+benchmarks that decision is degenerate: the answer is always ``yes.''
+\textbf{A benchmark without negatives cannot measure a classifier's
+ability to reject}, and an abstention path evaluated on one can only lose
+points. This also explains the RippleEdits result of \S\ref{sec:ripple}:
+RippleEdits \emph{does} contain same-subject, different-relation queries
+and therefore partial negatives, and it is exactly there that INLAY's
+preservation weakness shows up --- meaning any lifelong-editing system
+validated purely on CounterFact- or zsRE-style suites has, by construction,
+never had its abstention behaviour tested.
+
+\paragraph{We built the missing condition, and the mechanism confirms.}
+The missing condition is constructible: ask evaluation questions against an
+index that does \emph{not} contain the corresponding edit. For each of the
+same nine cells, we removed a query's own edit card from the retrieval
+index for half the sample (assigned independently per query,
+$\text{seed}=0$), so REJECT is the objectively correct action for that
+half; the executor, verifier, and \S\ref{sec:headroom}'s oracle-versus-static
+analysis are otherwise unmodified. Pooled headroom moves from $+0.0000$
+(every cell) to $\mathbf{+0.0420}$, and REJECT-only-correct queries rise
+from $0/1689$ to $52/1689$ ($3.08\%$). Splitting by population isolates the
+effect cleanly: the untouched population reproduces the original near-zero
+result ($+0.0025$), while the edit-removed population alone carries
+essentially all of the new headroom ($+0.0785$). This is a synthetic
+negative --- a card deleted from an otherwise intact index, not a curated
+out-of-scope question --- so it establishes the mechanism rather than a
+deployment-realistic estimate of routing's value; we release the code
+(\texttt{akew\_outcome\_labels\_oos.py}) and invite the continual-learning
+benchmark community to build the curated, deployment-realistic version this
+result motivates.
+
+\section{Auditing Our Own Machinery}
+\label{sec:audit}
+
+A negative result about benchmark design is only as credible as the honesty
+of the system used to produce it. We audited INLAY's own gating machinery
+after submission-quality numbers were already in hand and report two
+findings that could have changed those numbers.
+
+\paragraph{The margin gate is a no-op in the protocol behind our headline
+numbers.} The margin-over-runner-up gate is a genuine, measured locality fix
+at scale in a multi-slot regime: on a $400$-edit sequential test on
+GPT-2-XL, sweeping the margin from $0$ to $0.15$ moves locality from
+$0.5667$ to $1.0$. But every headline CounterFact and zsRE number in
+\S\ref{sec:accuracy} is produced under a single-edit-per-example protocol,
+where memory is cleared before every write and only one slot is ever
+occupied. In that regime the margin gate has nothing to compete against and
+is a no-op; it only matters in multi-slot regimes like the sequential test
+that measured it, i.e.\ the exact regime a genuinely continual deployment
+would be in.
+
+\paragraph{A gate-bypass bug meant the relation gate was never active in the
+runs behind our published matched-RippleEdits numbers.} A code audit found
+that the function every real generation path runs through, including
+RippleEdits, checked only the absolute similarity score and silently
+skipped the margin and relation-residual gates that the scoring-only code
+path already supported. We fixed this by adding a single shared routing
+decision used identically by both the scoring and generation code paths,
+then reran the exact operating point behind the published claim with the
+fix genuinely active:
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Aggregate & Published (bug) & Corrected & $\Delta$ \\
+    \midrule
+    GPT-J-6B    & 0.2253 & 0.2283 & $+0.0030$ \\
+    Qwen2.5-7B  & 0.2871 & 0.2891 & $+0.0020$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Validation rerun with the gate-bypass bug fixed, INLAY only,
+  matched manifest.}
+  \label{tab:gatebug}
+\end{table}
+
+Both deltas are within noise. \textbf{No correction to the published
+headline numbers in Table~\ref{tab:ripple} was needed}, but we disclose the
+bug rather than leaving it unmentioned: it was real, and the relation
+gate's isolated over-firing improvement does not translate into a
+materially stronger preservation score here, so the compositional
+weakness \S\ref{sec:ripple} names as open is not solved by activating the
+gate. A separate, unrelated capacity bug in the product-key allocator,
+fixed on the same audit pass, did not corrupt any published number; full
+accounting for both is in the released audit addendum.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+The result we did not expect to report is that a one-line static policy is
+provably optimal on all $1{,}689$ queries we tested, because abstention can
+never be correct when every question in a counterfactual benchmark targets
+an edited fact. This is a claim about the benchmarks, not about any one
+system: the entire SERAC-descendant architecture family --- the family most
+naturally suited to test-time continual editing of foundation-model agents
+--- is evaluated on suites that structurally cannot reward its central
+component, and reported routing gains on them measure how much harm a fixed
+gate was doing rather than any decision quality. The implication for this
+workshop's community is direct: a scope-classifier evaluation on
+CounterFact, zsRE, or similarly-shaped suites cannot, by itself, be used as
+evidence that a continual-editing system knows when \emph{not} to apply
+what it has learned. The remedy is not a better router but a benchmark
+containing queries for which the correct answer is ``this edit does not
+apply,'' and \S\ref{sec:cannot-measure} gives a concrete, released recipe
+for constructing one.
+
+INLAY, the system we built to obtain this result, is independently useful
+as a lifelong-editing case study: freezing the weights and placing edits in
+an external addressable memory buys writes roughly $1600\times$ cheaper
+than gradient-based editing, exact deletion, and locality by construction,
+at the cost of reciting facts rather than reasoning with them. It is not
+universally best --- WISE wins on Qwen2.5-7B CounterFact, RAG wins on
+matched RippleEdits --- and we report both without qualification, alongside
+a self-audit that found and checked two bugs in our own gating machinery.
+
+\paragraph{Reproducibility.} All numbers come from logged runs; splits are
+subject-disjoint with seed $0$. Code, per-experiment write-ups including
+negative results, and the figure generator are released with this paper.
+A full-length companion technical report gives complete per-model tables;
+this workshop paper is condensed for the page limit and preserves every
+claim, number, and disclosure load-bearing for the central argument above.
+
+\section*{Limitations}
+
+\textbf{Recitation, not reasoning.} Logit-space playback reproduces a
+stored answer and cannot combine it with anything else; this is structural
+to INLAY specifically, not to the paper's central claim about benchmark
+coverage. \textbf{Scope precision on hard negatives} is INLAY's real open
+problem (Table~\ref{tab:ripple}). \textbf{Small cells:} MQuAKE-CF slices are
+$n{=}63$; a $+6.4$-point structured-mode result rests on four discordant
+pairs, where the smallest attainable exact McNemar $p$ is $0.125$ ---
+suggestive, not established.
+
+\textbf{The missing condition is only a synthetic proxy.}
+\S\ref{sec:cannot-measure} constructs it by deleting a query's own edit
+card from an otherwise intact index, recovering measurable headroom
+($+0.0420$ pooled) and confirming the mechanism, but it is not a curated,
+deployment-realistic out-of-scope benchmark: it says nothing about how
+real out-of-scope queries would be distributed or how much headroom they
+would expose in an actual deployment. Our claim about current benchmarks
+is unaffected; the claim about a corrected benchmark is limited to what
+this synthetic construction establishes. \textbf{Coverage gaps:} no MEMIT,
+WISE, GRACE, or AlphaEdit results exist for Mistral-7B on CounterFact
+beyond gap-fill runs, and neither MEMIT nor GRACE has been run through the
+matched-manifest RippleEdits protocol on either model --- open, not
+silently assumed favorable.
+
+\section*{Ethics Statement}
+
+\textbf{Deletion and the right to be forgotten.} INLAY's central structural
+property is that removing an edit is removing a row: the correction is
+genuinely and verifiably gone, with no residual trace in model weights,
+unlike gradient-based editing. This is directly relevant to
+right-to-be-forgotten and GDPR-style deletion requirements for continually
+updated deployed models: an external, addressable memory is a plausible
+substrate for a system that must support real attestable deletion.
+
+\textbf{Dual use and gate correctness.} The same property that makes
+deletion easy makes injection easy in the other direction: an external
+memory that can silently override a frozen model's output at decode time
+is also a mechanism for injecting misinformation if the store is not
+access-controlled, a concern that compounds for an agent that continually
+writes to its own memory over an extended deployment; any deployment
+should treat the memory store as security-critical, with access controls
+matching the model weights it sits beside. Locality also holds ``by
+construction'' only bit-for-bit when the gate does not fire --- it is not
+a guarantee the gate's \emph{answer} is correct, so a deployment should not
+read ``locality by construction'' as ``correctness by construction.''
+
+\section*{Acknowledgments and Disclosure of Funding}
+
+Per the workshop's policy on generative AI use, we disclose that an AI
+coding assistant (an LLM-based agent under direct human supervision) was
+used throughout this project: iterating on experiment code and harnesses,
+running and debugging the GPU jobs behind the logged results cited
+throughout this paper, drafting portions of the prose, and assisting with
+the code audit in \S\ref{sec:audit}. All research ideas, hypotheses,
+experimental design choices, interpretation of results, and the decision
+of what to report are the human author's; the assistant did not originate
+the paper's scientific claims. Every number traces to a logged run
+inspected by the human author. See the NeurIPS Paper Checklist for the
+corresponding disclosure.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+
+\section{Condensed Result Summary}
+\label{sec:appendix-tables}
+
+The full per-model ES (edit success) / PS (paraphrase success) / NS
+(neighborhood specificity) / harmonic-mean-score / write-cost tables for
+CounterFact and zsRE across all four base models (GPT-2-XL, GPT-J-6B,
+Qwen2.5-7B, Mistral-7B-v0.3), and the propagation/preservation detail behind
+Table~\ref{tab:ripple}, are omitted here for space and are available in the
+companion full-length version of this paper and the released code
+repository. Table~\ref{tab:appendix-summary} gives the harmonic-mean summary
+on GPT-J-6B CounterFact ($N{=}2000$ unless noted), the single cell discussed
+in \S\ref{sec:accuracy}, as a representative slice of the full tables.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{@{}lrl@{}}
+    \toprule
+    Method & Score & Write cost \\
+    \midrule
+    ROME       & 0.797  & 8.60\,s \\
+    MEMIT      & 0.4314 & 26.30\,s \\
+    WISE       & 0.7032 & 14.76\,s \\
+    GRACE      & 0.00   & 17.35\,s \\
+    AlphaEdit  & 0.4595 & 12.12\,s \\
+    INLAY      & \textbf{0.8926} & $5$--$15$\,ms \\
+    \bottomrule
+  \end{tabular}
+  \caption{GPT-J-6B, CounterFact, structured input, $N{=}2000$ (INLAY at
+  $N{=}5000$). Full four-model tables for CounterFact, zsRE, and matched
+  RippleEdits are in the companion full-length version and the released
+  code.}
+  \label{tab:appendix-summary}
+\end{table}
+
+\newpage
+\input{checklist.tex}
+
+\end{document}
