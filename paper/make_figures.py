@@ -37,7 +37,13 @@ CM = 1 / 2.54
 COL, FULL = 7.7 * CM, 16.0 * CM   # inches: one column (3.031in), full text width (6.299in)
 
 INK, MUTED, FAINT = "#1a1a1a", "#5f5f5f", "#cfcfcf"
-NEUTRAL, ACCENT = "#a9a9a9", "#12615a"
+# ACCENT: a more saturated teal than the original flat #12615a (HSL 175,69,23)
+# -- same hue and lightness family so it still reads as "the same color, just
+# less washed out," but pushed to HSL 174,78,27 for more chroma under print.
+# NEUTRAL: the comparator gray is tinted toward the accent hue (HSL 173,9,60)
+# rather than pure achromatic gray (#a9a9a9), so the figure reads as one
+# coherent palette instead of "one bright color plus flat grayscale."
+NEUTRAL, ACCENT = "#90a2a0", "#0f7b70"
 RULE = "#8c8c8c"
 
 plt.rcParams.update({
