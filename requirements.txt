@@ -24,3 +24,10 @@ scikit-learn==1.5.1
 torch==2.4.1
 transformers==4.44.2
 sentence-transformers==3.0.1
+
+# Sandboxed / containerized environments: some torch OpenMP builds call
+# pthread_setaffinity_np() at import time and abort with
+# "OMP: Error #179 ... Operation not permitted" if the sandbox denies CPU
+# affinity syscalls (seen running the self-tests in a restricted container).
+# Fix: export OMP_NUM_THREADS=1 KMP_AFFINITY=disabled before running any of
+# the six self-tests. Not needed on a normal workstation/VM.
