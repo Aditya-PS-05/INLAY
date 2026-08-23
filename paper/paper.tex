@@ -45,7 +45,11 @@ is structural: these are counterfactual benchmarks whose evaluation question
 asks for the post-edit answer, so answering from parametric knowledge is
 wrong by construction, and a benchmark without negatives cannot reward a
 classifier's ability to reject. This generalizes beyond our system to the
-whole scope-classifier family the benchmarks are used to evaluate. We also
+whole scope-classifier family the benchmarks are used to evaluate. We confirm
+the mechanism directly: constructing the missing condition ourselves, by
+withholding a query's own edit from the index for half the sample, moves
+pooled headroom from exactly $+0.0000$ to $+0.0420$ and gives abstention its
+first wins. We also
 report where INLAY itself does not win --- WISE beats it on Qwen2.5-7B
 CounterFact, and retrieval-augmented generation beats every method we tested,
 INLAY included, on rigorously matched RippleEdits --- and disclose two bugs
@@ -526,10 +530,25 @@ is precisely where the main single-fact benchmarks are silent.
 
 The missing condition is constructible: ask evaluation questions against an
 index that does \emph{not} contain the corresponding edit. On such queries
-abstention becomes correct, the oracle should separate from the static
-policy, and routing acquires measurable headroom for the first time. We did
-not build this benchmark for the present paper; we flag it as the concrete,
-falsifiable next step this result implies.
+abstention becomes correct, and the oracle should separate from the static
+policy.
+
+\paragraph{We built this condition, and the mechanism confirms.} For each of
+the same nine cells, we removed a query's own edit card from the retrieval
+index for half the sample (assigned independently per query, $\text{seed}=0$),
+so REJECT is the objectively correct action for that half; the executor,
+verifier, and \S\ref{sec:headroom}'s oracle-versus-static analysis are
+otherwise unmodified. Pooled headroom moves from $+0.0000$ (every cell) to
+$\mathbf{+0.0420}$, and REJECT-only-correct queries rise from $0/1689$ to
+$52/1689$ ($3.08\%$). Splitting by population isolates the effect cleanly:
+the untouched population reproduces the original near-zero result
+($+0.0025$), while the edit-removed population alone carries essentially all
+of the new headroom ($+0.0785$). This is a synthetic negative --- a card
+deleted from an otherwise intact index, not a curated out-of-scope question
+--- so it establishes the mechanism rather than a deployment-realistic
+estimate of routing's value; we release the code
+(\texttt{akew\_outcome\_labels\_oos.py}) and invite the community to build the
+curated version this result motivates.
 
 \section{Auditing Our Own Machinery}
 \label{sec:audit}
@@ -756,7 +775,9 @@ Dashes mark a metric not reported for that run in the source logs.
     \midrule
     \multicolumn{6}{@{}l}{\textit{Mistral-7B-v0.3, $N=2000$ unless noted}} \\
     ROME       & 0.2846 & 0.2364 & 0.9211 & 0.3398 & 9.04 \\
+    GRACE$^{d}$ & 0.00   & --     & 1.00   & 0.00   & -- \\
     MEMIT$^{c}$ & 0.4218 & 0.2509 & 0.9466 & 0.4047 & -- \\
+    AlphaEdit$^{d}$ & 0.4156 & 0.261 & 0.9095 & 0.4089 & 10.29 \\
     WISE$^{c}$  & 0.9962 & 0.3097 & 1.00   & 0.5733 & 10.2 \\
     INLAY ($N{=}5000$) & 1.00 & 0.8895 & 0.8257 & \textbf{0.8995} & -- \\
     \bottomrule
@@ -766,8 +787,12 @@ Dashes mark a metric not reported for that run in the source logs.
   $^{b}$MEMIT/AlphaEdit Qwen numbers exist only in the ``dualmetric''
   prob-success framing, not the EasyEdit-native harmonic-mean column used for
   every other row; not directly comparable to INLAY's $0.8944$.
-  $^{c}$Mistral gap-fill runs, addendum \S C; no GRACE or AlphaEdit results
-  exist for Mistral CounterFact.}
+  $^{c}$Mistral gap-fill runs, addendum \S C.
+  $^{d}$Mistral GRACE/AlphaEdit gap-fill, closing the last open cells in the
+  four-model leaderboard (\texttt{outputs/akew\_mistral\_gapfill\_results.md}).
+  GRACE lands at exactly $0.0$ for the third model family in a row
+  (GPT-J, Qwen, Mistral); AlphaEdit's magnitude is consistent with its
+  GPT-J ($0.4595$) and Qwen (dualmetric-only) numbers.}
   \label{tab:appendix-cf}
 \end{table*}
 
@@ -809,13 +834,19 @@ Dashes mark a metric not reported for that run in the source logs.
     \midrule
     \multicolumn{6}{@{}l}{\textit{Mistral-7B-v0.3, $N=2000$}} \\
     ROME       & 0.6306 & 0.5972 & 0.9856 & 0.7018 & 12.50 \\
+    GRACE$^{b}$ & 0.1214 & 0.0032 & 1.00   & 0.0092 & 9.11 \\
     MEMIT$^{a}$ & 0.6434 & 0.6178 & 0.9935 & 0.7178 & 19.6 \\
+    AlphaEdit$^{b}$ & 0.616  & 0.5928 & 0.9913 & 0.6946 & 11.72 \\
     WISE$^{a}$  & 0.9481 & 0.9258 & 1.00   & 0.9570 & 12.7 \\
     INLAY      & 0.9999 & 0.9999 & 1.00 & \textbf{0.9999} & 13.69 \\
     \bottomrule
   \end{tabular}
   \caption{zsRE, all model families. $^{a}$Mistral gap-fill runs, addendum
-  \S C; no GRACE or AlphaEdit results exist for Mistral zsRE.}
+  \S C.
+  $^{b}$Mistral GRACE/AlphaEdit gap-fill
+  (\texttt{outputs/akew\_mistral\_gapfill\_results.md}); note the ranking is
+  MEMIT $>$ ROME $>$ AlphaEdit here, unlike CounterFact where ROME trails
+  everything but GRACE.}
   \label{tab:appendix-zsre}
 \end{table*}
 
