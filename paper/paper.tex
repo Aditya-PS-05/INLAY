@@ -672,17 +672,23 @@ larger model is more accurate whenever it commits --- it simply commits
 less. This is a property of the metric, and it implies scale comparisons on
 noisy-retrieval benchmarks systematically understate larger models.
 
-\textbf{The missing benchmark condition remains unbuilt.} We argue in
-\S\ref{sec:cannot-measure} that a benchmark with queries against a
-non-edited index would give routing measurable headroom for the first time,
-but we did not construct or run it. Our claim is limited to what current
-benchmarks can measure, not to what a corrected benchmark would show.
+\textbf{The missing condition is only a synthetic proxy.} \S\ref{sec:cannot-measure}
+constructs the missing condition by deleting a query's own edit card from an
+otherwise intact index, which recovers measurable headroom ($+0.0420$ pooled)
+and confirms the mechanism. This is not a curated, deployment-realistic
+out-of-scope benchmark: it says nothing about how real out-of-scope
+queries --- never-edited facts, adversarial paraphrases, genuinely unrelated
+questions --- would be distributed or how much headroom they would expose. Our
+claim about current benchmarks is unaffected by this caveat; the claim about
+what a corrected benchmark would show is limited to what this synthetic
+construction establishes.
 
 \textbf{Coverage gaps in our own comparison table.} No MEMIT, WISE, GRACE, or
 AlphaEdit results exist for Mistral-7B on CounterFact beyond the gap-fill
-runs reported in Appendix~\ref{sec:appendix-tables}, and no method besides
-base, RAG, and INLAY has been run through the matched-manifest RippleEdits
-protocol. These are open, not silently assumed favorable.
+runs reported in Appendix~\ref{sec:appendix-tables}, and neither MEMIT nor
+GRACE has been run through the matched-manifest RippleEdits protocol on
+either model (Table~\ref{tab:ripple} covers base, RAG, ROME, WISE, AlphaEdit,
+and INLAY only). These are open, not silently assumed favorable.
 
 \section*{Ethics Statement}
 
@@ -721,6 +727,23 @@ will confidently return that wrong answer with no signal to the user that
 anything is amiss. \S\ref{sec:ripple} and \S\ref{sec:audit} quantify how
 often this misrouting occurs in our own system; a deployment should not read
 ``locality by construction'' as ``correctness by construction.''
+
+\section*{Acknowledgements}
+
+Per ACL's policy on generative AI, we disclose that an AI coding assistant
+(an LLM-based agent operating under direct human supervision) was used
+throughout this project: iterating on experiment code and harnesses,
+running and debugging the GPU jobs behind the logged results cited
+throughout this paper, drafting portions of the prose in this manuscript,
+and assisting with the code audit reported in \S\ref{sec:audit}. All
+research ideas, hypotheses, experimental design choices, interpretation of
+results, and the decision of what to report (including the negative result
+this paper is built around) are the human author's; the assistant did not
+originate the paper's scientific claims. Every number in this paper traces
+to a logged run inspected by the human author, and all six regression tests
+released with this paper were re-run and confirmed passing before
+submission. See the Responsible NLP Research checklist for the corresponding
+disclosure.
 
 \bibliography{refs}
 
@@ -775,7 +798,7 @@ Dashes mark a metric not reported for that run in the source logs.
     \midrule
     \multicolumn{6}{@{}l}{\textit{Mistral-7B-v0.3, $N=2000$ unless noted}} \\
     ROME       & 0.2846 & 0.2364 & 0.9211 & 0.3398 & 9.04 \\
-    GRACE$^{d}$ & 0.00   & --     & 1.00   & 0.00   & -- \\
+    GRACE$^{d}$ & 0.00   & 0.0059 & 1.00   & 0.00   & 6.54 \\
     MEMIT$^{c}$ & 0.4218 & 0.2509 & 0.9466 & 0.4047 & -- \\
     AlphaEdit$^{d}$ & 0.4156 & 0.261 & 0.9095 & 0.4089 & 10.29 \\
     WISE$^{c}$  & 0.9962 & 0.3097 & 1.00   & 0.5733 & 10.2 \\
